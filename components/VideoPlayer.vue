@@ -1,11 +1,39 @@
-<script setup lang="ts">
-
-</script>
-
 <template>
-  $END$
+  <div class="video-container">
+    <iframe
+      width="100%"
+      height="100%"
+      :src="course?.video"
+      :title="course?.title"
+      frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+    ></iframe>
+  </div>
 </template>
 
-<style scoped>
+<script setup lang="ts">
+const route = useRoute();
+const courseSlug = route.params.courseSlug as string;
+const { course } = useCourse(courseSlug);
+</script>
 
+<style scoped>
+.video-container {
+  position: relative;
+  padding-bottom: 56.25%;
+  padding-top: 30px;
+  height: 0;
+  overflow: hidden;
+}
+
+.video-container iframe,
+.video-container object,
+.video-container embed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
 </style>
