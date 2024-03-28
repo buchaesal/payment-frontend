@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pa-xl">
+  <div>
     <AppCard>
       <template #header>
         <div class="text-h5 text-weight-medium">{{ course?.title }}</div>
@@ -43,22 +43,45 @@
         </div>
       </div>
       <p class="q-mt-lg text-grey-8">{{ course?.content }}</p>
+      <q-separator class="q-mb-lg" />
+      <q-form class="q-gutter-y-md">
+        <q-btn
+            label="수강완료"
+            class="full-width"
+            color="green"
+            unelevated
+            :outline="completed ? false : true"
+            :icon="completed ? 'check' : undefined"
+            @click="completed = !completed"
+        />
+        <q-input
+            v-model="memo"
+            type="textarea"
+            outlined
+            dense
+            placeholder="메모를 작성해주세요."
+            rows="3"
+            autogrow
+        />
+      </q-form>
       <template #footer>
-        <q-btn
-          v-if="prevCourse"
-          label="이전 강의"
-          color="primary"
-          unelevated
-          :to="prevCourse.path"
-        />
-        <q-space />
-        <q-btn
-          v-if="nextCourse"
-          label="다음 강의"
-          color="primary"
-          unelevated
-          :to="nextCourse.path"
-        />
+        <ClientOnly>
+          <q-btn
+              v-if="prevCourse"
+              label="이전 강의"
+              color="primary"
+              unelevated
+              @click="movePage(prevCourse.path)"
+          />
+          <q-space />
+          <q-btn
+              v-if="nextCourse"
+              label="다음 강의"
+              color="primary"
+              unelevated
+              @click="movePage(nextCourse.path)"
+          />
+        </ClientOnly>
       </template>
     </AppCard>
   </div>
@@ -68,6 +91,23 @@
 const route = useRoute();
 const courseSlug = route.params.courseSlug as string;
 const { course, prevCourse, nextCourse } = useCourse(courseSlug);
+// console.log('[courseSlug].vue 컴포넌트 setup hooks');
+// const title = ref('');
+definePageMeta({
+  key: (route) => route.fullPath,
+  // title: title.value, // 이렇게 하면 오류가 발생합니다.
+  title: 'My home page',
+  pageType: '',
+  keepalive: true,
+  alias: ['/lecture/:courseSlug']
+});
+
+const memo = ref('');
+const completed = ref(false);
+
+const movePage = async (path: string) => {
+  await navigateTo(path);
+}
 </script>
 
 <style scoped></style>
