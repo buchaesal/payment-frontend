@@ -52,7 +52,7 @@
             unelevated
             :outline="completed ? false : true"
             :icon="completed ? 'check' : undefined"
-            @click="completed = !completed"
+            @click="toggleComplete"
         />
         <q-input
             v-model="memo"
@@ -91,14 +91,23 @@
 const route = useRoute();
 const courseSlug = route.params.courseSlug as string;
 const { course, prevCourse, nextCourse } = useCourse(courseSlug);
-// console.log('[courseSlug].vue 컴포넌트 setup hooks');
-// const title = ref('');
+
+console.log('before error1', process.server)
+if(!course) {
+  console.log('before error2', process.server)
+  throw createError({
+    statusCode: 404,
+    statusMessage: 'Course not found',
+    // fatal: true,
+  })
+}
+
 definePageMeta({
   key: (route) => route.fullPath,
   // title: title.value, // 이렇게 하면 오류가 발생합니다.
   title: 'My home page',
   pageType: '',
-  keepalive: true,
+  // keepalive: true,
   alias: ['/lecture/:courseSlug']
 });
 
@@ -107,6 +116,12 @@ const completed = ref(false);
 
 const movePage = async (path: string) => {
   await navigateTo(path);
+}
+
+const toggleComplete = () => {
+  // $fetch('/api/error');
+  showError('에러가 발생했습니다.');
+  completed.value = !completed.value;
 }
 </script>
 

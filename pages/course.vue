@@ -16,6 +16,13 @@
                 {{ index + 1 }}. {{ course.title }}
               </q-item-section>
             </q-item>
+            <q-item v-ripple
+                    clickable
+                    to="/course/empty">
+              <q-item-section>
+                Empty Course (throw error)
+              </q-item-section>
+            </q-item>
           </q-list>
         </q-card>
       </div>
