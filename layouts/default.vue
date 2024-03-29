@@ -18,6 +18,10 @@
           <q-btn stretch flat :label="$t('admin')" @click="navigate" no-caps />
         </NuxtLink>
         <q-separator dark vertical />
+        <NuxtLink custom v-slot="{navigate}" to="/goodsList">
+          <q-btn stretch flat label="상품 목록" @click="navigate" no-caps />
+        </NuxtLink>
+        <q-separator dark vertical />
         <q-btn-dropdown stretch flat no-caps :label="selectedLanguageName">
           <q-list padding dense>
             <q-item
