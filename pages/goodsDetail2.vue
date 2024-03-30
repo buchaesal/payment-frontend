@@ -5,8 +5,8 @@
 <template>
   <q-page padding>
     <div class="q-my-xl text-center">
-      <div class="text-h4">상품 상세</div>
-      <p class="q-mt-sm text-grey-8">상품 상세 화면입니다.</p>
+      <div class="text-h4">상품 상세의 상세</div>
+      <p class="q-mt-sm text-grey-8">상품 상세의 상세 화면입니다.</p>
     </div>
     <div class="q-pa-md">
       <q-layout view="lHh lpr lFf" container style="height: 3000px" class="shadow-2 rounded-borders">
@@ -113,18 +113,7 @@
       </q-layout>
     </div>
 
-
-    <NuxtLink v-slot="{ navigate }" custom to="/goodsDetail2">
-      <CourseCard
-          thumbnail="https://cdn.goodkyung.com/news/photo/202102/137797_95931_1549.png"
-          title="상세의 상세"
-          subtitle="상세의 상세로 가는 관문이다."
-          @click="navigate"
-      />
-    </NuxtLink>
   </q-page>
-
-
 </template>
 
 <style scoped>
