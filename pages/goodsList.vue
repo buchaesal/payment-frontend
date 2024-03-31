@@ -1,5 +1,19 @@
 <script setup lang="ts">
+
 const goodsList = useGoods();
+
+// const handleBack = (event: any) => {
+//   // event.state에 scroll position이 있음
+//   console.log('뒤로 가기 버튼을 눌렀습니다.', event);
+//   window.removeEventListener('popstate', handleBack);
+// }
+//
+// onMounted(() => {
+//   console.log('mounted goodsList')
+//   window.removeEventListener('popstate', handleBack);
+//   window.addEventListener('popstate', handleBack);
+// });
+
 </script>
 
 <template>
