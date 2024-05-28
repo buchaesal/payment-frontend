@@ -4,37 +4,43 @@
       <q-toolbar>
         <q-toolbar-title>Vue Master Course</q-toolbar-title>
         <q-separator dark vertical />
-        <NuxtLink custom v-slot="{navigate}" to="/">
-          <q-btn stretch flat :label="$t('home')" @click="navigate" no-caps />
+        <NuxtLink v-slot="{ navigate }" custom to="/">
+          <q-btn stretch flat :label="$t('home')" no-caps @click="navigate" />
         </NuxtLink>
         <q-separator dark vertical />
-        <NuxtLink custom v-slot="{navigate}" to="/about">
-          <q-btn stretch flat :label="$t('about')" @click="navigate" no-caps />
+        <NuxtLink v-slot="{ navigate }" custom to="/about">
+          <q-btn stretch flat :label="$t('about')" no-caps @click="navigate" />
         </NuxtLink>
         <q-separator dark vertical />
-        <q-btn stretch flat :label="$t('youtube')" @click="moveYoutube" no-caps />
+        <q-btn
+          stretch
+          flat
+          :label="$t('youtube')"
+          no-caps
+          @click="moveYoutube"
+        />
         <q-separator dark vertical />
-        <NuxtLink custom v-slot="{navigate}" to="/admin">
-          <q-btn stretch flat :label="$t('admin')" @click="navigate" no-caps />
+        <NuxtLink v-slot="{ navigate }" custom to="/admin">
+          <q-btn stretch flat :label="$t('admin')" no-caps @click="navigate" />
         </NuxtLink>
         <q-separator dark vertical />
-        <NuxtLink custom v-slot="{navigate}" to="/goodsList">
-          <q-btn stretch flat label="상품 목록" @click="navigate" no-caps />
+        <NuxtLink v-slot="{ navigate }" custom to="/goodsList">
+          <q-btn stretch flat label="상품 목록" no-caps @click="navigate" />
         </NuxtLink>
         <q-separator dark vertical />
-        <NuxtLink custom v-slot="{navigate}" to="/goodsList2">
-          <q-btn stretch flat label="상품 목록2" @click="navigate" no-caps />
+        <NuxtLink v-slot="{ navigate }" custom to="/goodsList2">
+          <q-btn stretch flat label="상품 목록2" no-caps @click="navigate" />
         </NuxtLink>
         <q-separator dark vertical />
         <q-btn-dropdown stretch flat no-caps :label="selectedLanguageName">
           <q-list padding dense>
             <q-item
-                v-for="{ code, name } in languages"
-                :key="code"
-                v-close-popup
-                clickable
-                :active="code === $i18n.locale"
-                @click="$i18n.locale = code"
+              v-for="{ code, name } in languages"
+              :key="code"
+              v-close-popup
+              clickable
+              :active="code === $i18n.locale"
+              @click="$i18n.locale = code"
             >
               <q-item-section>
                 <q-item-label>{{ name }}</q-item-label>
@@ -42,16 +48,34 @@
             </q-item>
           </q-list>
         </q-btn-dropdown>
+        <q-separator dark vertical />
+        <NuxtLink v-slot="{ navigate }" custom to="/login">
+          <q-btn
+            stretch
+            flat
+            :label="$t('login')"
+            no-caps
+            @click="navigate()"
+          />
+        </NuxtLink>
+        <NuxtLink v-slot="{ navigate }" custom to="/">
+          <q-btn
+            stretch
+            flat
+            :label="$t('logout')"
+            no-caps
+            @click="navigate()"
+          />
+        </NuxtLink>
       </q-toolbar>
     </q-header>
     <q-page-container :style="pageContainerStyle">
-      <slot />
+      <slot></slot>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-
 const pageContainerStyle = computed(() => ({
   maxWidth: '1080px',
   margin: '0 auto',
@@ -61,21 +85,23 @@ const moveYoutube = async () => {
   await navigateTo('https://youtube.com/@gymcoding', {
     external: true,
     open: {
-      target: '_blank'
-    }
+      target: '_blank',
+    },
   });
 };
 
 interface Language {
   name: string;
-  code: 'en' | 'ko'
+  code: 'en' | 'ko';
 }
 
 const languages = ref<Language[]>([
-  {name: 'English', code: 'en'},
-  {name: '한국어', code: 'ko'},
+  { name: 'English', code: 'en' },
+  { name: '한국어', code: 'ko' },
 ]);
 
-const {locale} = useI18n();
-const selectedLanguageName = computed(() => languages.value.find((lang) => lang.code === locale.value)?.name)
+const { locale } = useI18n();
+const selectedLanguageName = computed(
+  () => languages.value.find((lang) => lang.code === locale.value)?.name,
+);
 </script>

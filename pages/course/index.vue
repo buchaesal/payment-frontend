@@ -8,17 +8,17 @@
           시작해봐요!
         </div>
         <q-btn
-            label="시작하기"
-            class="q-mt-lg"
-            size="lg"
-            color="primary"
-            unelevated
-            to="/course/html-css"
+          label="시작하기"
+          class="q-mt-lg"
+          size="lg"
+          color="primary"
+          unelevated
+          to="/course/html-css"
         />
       </div>
     </AppCard>
   </div>
 </template>
 <script setup lang="ts">
-import prefetching1 from './prefetching-1.vue'
+import prefetching1 from './prefetching-1.vue';
 </script>
