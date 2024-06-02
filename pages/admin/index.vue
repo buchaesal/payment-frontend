@@ -8,11 +8,10 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({
-    layout: 'admin'
-  })
+definePageMeta({
+  layout: 'admin',
+  // middleware: ['admin-only'],
+});
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>

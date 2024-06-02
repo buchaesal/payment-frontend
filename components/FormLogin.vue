@@ -4,6 +4,8 @@
 
     <q-input v-model="form.passwowrd" filled type="password" label="password" />
 
+    <div v-if="error" class="text-red text-center">{{ error.message }}</div>
+
     <div class="q-mt-lg">
       <q-btn
         class="full-width"
@@ -19,10 +21,14 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth';
+
 const emit = defineEmits<{
   success: [];
 }>();
 // const emit = defineEmits(['success']);
+
+const { signIn } = useAuthStore();
 
 const form = ref({
   email: '',
@@ -31,12 +37,13 @@ const form = ref({
 const error = ref<Error | null>(null);
 const loading = ref(false);
 
-const handleLoginSubmit = () => {
+const handleLoginSubmit = async () => {
   try {
     error.value = null;
     loading.value = true;
 
     // login business logic
+    await signIn(form.value.email, form.value.passwowrd);
 
     emit('success');
   } catch (err: unknown) {
@@ -46,9 +53,7 @@ const handleLoginSubmit = () => {
       throw Error;
     }
   } finally {
-    setTimeout(() => {
-      loading.value = false;
-    }, 1500);
+    loading.value = false;
   }
 };
 </script>

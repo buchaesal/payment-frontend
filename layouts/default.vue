@@ -49,7 +49,14 @@
           </q-list>
         </q-btn-dropdown>
         <q-separator dark vertical />
-        <NuxtLink v-slot="{ navigate }" custom to="/login">
+        <!--        localStorage는 ssr로드에서 가져올 수 없어서-->
+        <!--        <ClientOnly>-->
+        <NuxtLink
+          v-if="!isAuthenticated"
+          v-slot="{ navigate }"
+          custom
+          to="/login"
+        >
           <q-btn
             stretch
             flat
@@ -58,24 +65,33 @@
             @click="navigate()"
           />
         </NuxtLink>
-        <NuxtLink v-slot="{ navigate }" custom to="/">
-          <q-btn
-            stretch
-            flat
-            :label="$t('logout')"
-            no-caps
-            @click="navigate()"
-          />
-        </NuxtLink>
+        <q-btn
+          v-else
+          stretch
+          flat
+          :label="$t('logout')"
+          no-caps
+          @click="signOut()"
+        />
+        <!--        </ClientOnly>-->
       </q-toolbar>
     </q-header>
     <q-page-container :style="pageContainerStyle">
+      <!--      <ClientOnly>-->
+      <q-banner v-if="isAuthenticated" class="bg-primary text-white">{{
+        authUser
+      }}</q-banner>
+      <!--      </ClientOnly>-->
       <slot></slot>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
+const authStore = useAuthStore();
+const { user: authUser, isAuthenticated } = storeToRefs(authStore);
+const { signOut } = authStore;
+
 const pageContainerStyle = computed(() => ({
   maxWidth: '1080px',
   margin: '0 auto',
@@ -104,4 +120,8 @@ const { locale } = useI18n();
 const selectedLanguageName = computed(
   () => languages.value.find((lang) => lang.code === locale.value)?.name,
 );
+
+watch(locale, (val) => {
+  useCookie('locale').value = val;
+});
 </script>

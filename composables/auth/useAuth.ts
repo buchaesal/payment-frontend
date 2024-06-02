@@ -1,8 +1,10 @@
 import type { UserWithoutPassword } from '~/types/user';
+import { useAuthUser } from '~/composables/auth/useAuthUser';
+import { getUser } from '~/composables/auth/userData';
 
 export const useAuth = () => {
-  const authUser = ref<Maybe<UserWithoutPassword>>(null);
-
+  // const { authUser } = useAuthUser();
+  const authUser = useAuthUser();
   const signIn = (email: string, password: string) => {
     const foundUser = getUser(email, password);
 
@@ -12,6 +14,7 @@ export const useAuth = () => {
         statusMessage: 'Invalid email or password',
       });
     }
+    setUser(foundUser);
   };
 
   const setUser = (user: Maybe<UserWithoutPassword>) => {
