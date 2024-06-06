@@ -2,7 +2,7 @@
   <q-layout view="hHh lpR fFf">
     <q-header elevated class="bg-dark text-white">
       <q-toolbar>
-        <q-toolbar-title>Vue Master Course</q-toolbar-title>
+        <q-toolbar-title>{{ appConfig.title }}</q-toolbar-title>
         <q-separator dark vertical />
         <NuxtLink v-slot="{ navigate }" custom to="/">
           <q-btn stretch flat :label="$t('home')" no-caps @click="navigate" />
@@ -32,18 +32,16 @@
           <q-btn stretch flat label="상품 목록2" no-caps @click="navigate" />
         </NuxtLink>
         <q-separator dark vertical />
-        <q-btn-dropdown stretch flat no-caps :label="selectedLanguageName">
+        <q-btn-dropdown stretch flat no-caps label="English">
           <q-list padding dense>
-            <q-item
-              v-for="{ code, name } in languages"
-              :key="code"
-              v-close-popup
-              clickable
-              :active="code === $i18n.locale"
-              @click="$i18n.locale = code"
-            >
+            <q-item v-close-popup clickable :to="localePath('/', 'en')">
               <q-item-section>
-                <q-item-label>{{ name }}</q-item-label>
+                <q-item-label>English</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-close-popup clickable :to="switchLocalePath('ko')">
+              <q-item-section>
+                <q-item-label>한국어</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -106,22 +104,10 @@ const moveYoutube = async () => {
   });
 };
 
-interface Language {
-  name: string;
-  code: 'en' | 'ko';
-}
-
-const languages = ref<Language[]>([
-  { name: 'English', code: 'en' },
-  { name: '한국어', code: 'ko' },
-]);
-
 const { locale } = useI18n();
-const selectedLanguageName = computed(
-  () => languages.value.find((lang) => lang.code === locale.value)?.name,
-);
+const localePath = useLocalePath();
+const switchLocalePath = useSwitchLocalePath();
 
-watch(locale, (val) => {
-  useCookie('locale').value = val;
-});
+const appConfig = useAppConfig();
+console.log('appConfig: ', appConfig);
 </script>

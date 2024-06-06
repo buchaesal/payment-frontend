@@ -43,13 +43,18 @@
         </div>
         <div class="q-gutter-y-sm q-mt-md">
           <div class="text-subtitle1 text-weight-bold">useCounterStore()</div>
-          <div>
-            count: {{ count }}
-            doubleCount: {{ doubleCount }}
-          </div>
+          <div>count: {{ count }} doubleCount: {{ doubleCount }}</div>
           <div>
             <q-btn label="increment" @click="counterStore.increment" />
           </div>
+        </div>
+
+        <div class="q-gutter-y-sm q-mt-md">
+          <div class="text-subtitle1 text-weight-bold">
+            local vs session storage
+          </div>
+          <q-input v-model="localStorageColor" outlined />
+          <q-input v-model="sessionStorageColor" outlined />
         </div>
       </div>
     </div>
@@ -57,9 +62,17 @@
 </template>
 
 <script setup lang="ts">
+import { useLocalStorage, useSessionStorage } from '@vueuse/core';
+
 const counter = useState<number>('counter', () => 1);
 const sameCounter = useState<number>('counter');
 
 const counterStore = useCounterStore();
 const { count, doubleCount } = storeToRefs(counterStore);
+
+const localStorageColor = useLocalStorage('color-key', null);
+const sessionStorageColor = useSessionStorage('color-key', null);
+
+const config = useRuntimeConfig();
+console.log('about config: ', config.public.clientConfigValue);
 </script>

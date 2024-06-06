@@ -1,17 +1,5 @@
 import type { CourseReturn } from '~/types/course';
+import useFetchWithCache from '~/composables/useFetchWithCache';
 
-export const useCourse = async (
-  courseSlug: string,
-): Promise<Maybe<CourseReturn>> => {
-  const { data, error } = await useFetch<CourseReturn>(
-    `/api/courses/${courseSlug}`,
-  );
-
-  if (error.value) {
-    throw createError({
-      ...error.value,
-    });
-  }
-
-  return data.value;
-};
+export const useCourse = (courseSlug: string): Promise<Maybe<CourseReturn>> =>
+  useFetchWithCache(`api/course/${courseSlug}`);

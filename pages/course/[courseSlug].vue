@@ -1,5 +1,9 @@
 <template>
   <div>
+<!--    <Head>-->
+<!--      <Title>{{ title }}</Title>-->
+<!--      <Meta name="description" :content="description"/>-->
+<!--    </Head>-->
     <AppCard>
       <template #header>
         <div class="text-h5 text-weight-medium">{{ course?.title }}</div>
@@ -91,6 +95,14 @@
 const route = useRoute();
 const courseSlug = route.params.courseSlug as string;
 const { course, prevCourse, nextCourse } = (await useCourse(courseSlug)) || {};
+
+// const title = computed(() => course?.title);
+// const description = computed(() => course?.content);
+
+useSeoMeta({
+  title: () => course?.title || '',
+  description: () => course?.content || '',
+});
 
 console.log('before error1', process.server);
 
