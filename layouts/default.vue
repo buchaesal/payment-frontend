@@ -80,6 +80,7 @@
         authUser
       }}</q-banner>
       <!--      </ClientOnly>-->
+      <div id="layoutTitle" />
       <slot></slot>
     </q-page-container>
   </q-layout>
