@@ -1,5 +1,5 @@
 {
-  "name": "nuxt-app",
+  "name": "toss-payment-frontend",
   "private": true,
   "type": "module",
   "scripts": {
