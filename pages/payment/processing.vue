@@ -111,20 +111,19 @@ const processTossPayment = async () => {
     // Spring Boot API 서버로 승인 요청 (주문정보 + 인증응답값)
     const requestData = {
       // 토스페이먼츠 인증 응답값
-      paymentKey: paymentData.value.paymentKey,
-      orderId: paymentData.value.orderId,
-      amount: parseInt(paymentData.value.amount),
-      
+      // paymentKey: paymentData.value.paymentKey,
+      // orderId: paymentData.value.orderId,
+      // amount: parseInt(paymentData.value.amount),
       // 주문 정보
       customerName: customerInfo.name || '테스트 고객',
       customerEmail: customerInfo.email || 'test@example.com',
       customerPhone: customerInfo.phone || '010-1234-5678',
       productName: orderInfo.productName || '테스트 상품',
       quantity: orderInfo.quantity || 1,
-      
       // 회원 정보 및 적립금 사용
       memberId: memberId,
-      usePoints: usePoints
+      usePoints: usePoints,
+      authResultMap: paymentData.value
     }
     
     console.log('=== Spring Boot API 요청 데이터 ===')
@@ -167,7 +166,7 @@ const processTossPayment = async () => {
             successUrl.searchParams.set(key, value)
           }
         })
-        window.location.href = successUrl.toString()
+        // window.location.href = successUrl.toString()
       }, 1000)
     } else {
       throw new Error(result.message || '승인 실패')
@@ -176,7 +175,7 @@ const processTossPayment = async () => {
   } catch (error) {
     console.error('Spring Boot API 호출 오류:', error)
     currentStatus.value = '승인 실패'
-    window.location.href = `/payment/fail?message=${encodeURIComponent(error.message)}`
+    // window.location.href = `/payment/fail?message=${encodeURIComponent(error.message)}`
   }
 }
 

@@ -113,7 +113,7 @@ const login = async () => {
       alert(`${result.member.name}님, 환영합니다! 결제 페이지로 이동합니다.`)
       
       // 결제 페이지로 이동
-      await navigateTo('/payment')
+      await navigateTo('/paymentSheet')
     } else {
       alert(result.message)
     }
@@ -168,7 +168,7 @@ onMounted(async () => {
   if (savedMember) {
     const member = JSON.parse(savedMember)
     alert(`이미 로그인되어 있습니다. ${member.name}님, 결제 페이지로 이동합니다.`)
-    await navigateTo('/payment')
+    await navigateTo('/paymentSheet')
   }
 })
 

@@ -102,14 +102,14 @@
     </div>
 
     <!-- 이니시스 결제를 위한 숨겨진 폼 -->
-    <form id="inicis_form" name="inicis_form" method="post" style="display: none;">
+    <form id="inicis_form" name="inicis_form" method="post" action="https://stgstdpay.inicis.com/ini/payform.php" target="_self">
       <input type="hidden" name="version" id="version" value="1.0" />
       <input type="hidden" name="gopaymethod" id="gopaymethod" />
       <input type="hidden" name="mid" id="mid" />
       <input type="hidden" name="oid" id="oid" />
       <input type="hidden" name="price" id="price" />
       <input type="hidden" name="timestamp" id="timestamp" />
-      <input type="hidden" name="use_chkfake" id="use_chkfake" value="Y" />
+      <input type="hidden" name="use_chkfake" id="use_chkfake" />
       <input type="hidden" name="signature" id="signature" />
       <input type="hidden" name="verification" id="verification" />
       <input type="hidden" name="mKey" id="mKey" />
@@ -121,7 +121,6 @@
       <input type="hidden" name="returnUrl" id="returnUrl" />
       <input type="hidden" name="closeUrl" id="closeUrl" />
       <input type="hidden" name="acceptmethod" id="acceptmethod" />
-      <input type="hidden" name="paymethod" id="paymethod" />
     </form>
   </div>
 </template>
@@ -207,7 +206,7 @@ const loadTossPayments = async () => {
 // PG사 랜덤 선택 (50:50)
 const selectRandomPG = () => {
   // return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
-  return 'INICIS'
+  return 'TOSS'
 }
 
 const handlePayment = async () => {
@@ -349,13 +348,12 @@ const handleInicisPayment = async () => {
       buyername: customerInfo.value.name,
       buyertel: customerInfo.value.phone,
       buyeremail: customerInfo.value.email,
-      acceptmethod: "below1000",
-      paymethod: "Card",
+      acceptmethod: "HPP(1):below1000",
       gopaymethod: "Card",
       // 결제 완료 후 이동할 페이지
-      returnUrl: `${window.location.origin}/payment/inicis/processing`,
-      // 결제 창이 닫힐 때 이동할 페이지  
-      closeUrl: `${window.location.origin}/payment/fail?message=결제창이 닫혔습니다`,
+      returnUrl: `${window.location.origin}/api/payment`,
+      // 결제 창이 닫힐 때 이동할 페이지
+      closeUrl: `${window.location.origin}/payment/fail?message=`,
       // 서버에서 받아온 데이터 (HTML 폼 필드명과 정확히 일치시킴)
       mid: paymentInfo.mid,
       mKey: paymentInfo.mkey,
@@ -383,7 +381,6 @@ const handleInicisPayment = async () => {
     document.getElementById('returnUrl').value = inicisParams.returnUrl
     document.getElementById('closeUrl').value = inicisParams.closeUrl
     document.getElementById('acceptmethod').value = inicisParams.acceptmethod
-    document.getElementById('paymethod').value = inicisParams.paymethod
 
     console.log('HTML 폼 필드 설정 완료')
     console.log('mid:', document.getElementById('mid').value)

@@ -10,7 +10,7 @@ const description = ref('짐코딩과 함께 Vue3 기초부터 실전');
 useSeoMeta({
   title,
   titleTemplate: (titleChunk) => {
-    return titleChunk ? `${titleChunk} - 짐코딩 강의` : '짐코딩 강의';
+    return titleChunk ? `${titleChunk}` : '';
   },
   description,
   ogTitle: title,
