@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\Users\\danbi\\IdeaProjects/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-frontend/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-frontend/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\controller/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\dto/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api/**)",
+      "WebFetch(domain:manual.inicis.com)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\controller/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\model/**)",
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\model/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

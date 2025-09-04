@@ -5,7 +5,7 @@
         <div class="spinner-ring"></div>
       </div>
       
-      <h1 class="processing-title">결제 처리 중입니다</h1>
+      <h1 class="processing-title">이니시스 결제 처리 중입니다</h1>
       <p class="processing-message">잠시만 기다려주세요...</p>
       
       <div class="status-info">
@@ -16,7 +16,7 @@
       </div>
 
       <div class="debug-section" v-if="paymentData">
-        <h3>인증 응답 데이터</h3>
+        <h3>이니시스 인증 응답 데이터</h3>
         <div class="debug-content">
           <pre>{{ JSON.stringify(paymentData, null, 2) }}</pre>
         </div>
@@ -34,7 +34,7 @@ const paymentData = ref(null)
 
 // 페이지 로드 즉시 실행
 if (process.client) {
-  console.log('=== 클라이언트 사이드 실행 ===')
+  console.log('=== 이니시스 클라이언트 사이드 실행 ===')
   console.log('현재 URL:', window.location.href)
   
   // URL에서 쿼리 파라미터 직접 파싱
@@ -49,7 +49,7 @@ if (process.client) {
 }
 
 onMounted(async () => {
-  console.log('=== onMounted 실행 ===')
+  console.log('=== 이니시스 onMounted 실행 ===')
   console.log('현재 URL:', window.location.href)
   console.log('route.query:', route.query)
   
@@ -66,8 +66,8 @@ onMounted(async () => {
   // 인증 응답 데이터 저장
   paymentData.value = { ...finalData }
   
-  console.log('최종 결제 데이터:', paymentData.value)
-  console.log('최종 결제 데이터 (JSON):', JSON.stringify(paymentData.value, null, 2))
+  console.log('최종 이니시스 결제 데이터:', paymentData.value)
+  console.log('최종 이니시스 결제 데이터 (JSON):', JSON.stringify(paymentData.value, null, 2))
   
   // URL에 쿼리 파라미터가 없는 경우 (직접 접근)
   if (Object.keys(finalData).length === 0) {
@@ -79,11 +79,11 @@ onMounted(async () => {
     return
   }
   
-  // 토스페이먼츠 결제 처리
-  if (finalData.paymentKey) {
-    console.log('토스페이먼츠 인증 완료')
-    currentStatus.value = '토스페이먼츠 승인 요청 중...'
-    await processTossPayment()
+  // 이니시스 결제 처리 - tid 또는 P_TID 확인
+  if (finalData.tid || finalData.P_TID) {
+    console.log('이니시스 인증 완료')
+    currentStatus.value = '이니시스 승인 요청 중...'
+    await processInicisPayment()
   } else {
     console.log('결제 응답 오류 또는 잘못된 접근')
     currentStatus.value = '결제 응답 오류'
@@ -93,12 +93,12 @@ onMounted(async () => {
   }
 })
 
-const processTossPayment = async () => {
+const processInicisPayment = async () => {
   try {
-    console.log('토스페이먼츠 승인 프로세스 시작')
+    console.log('이니시스 승인 프로세스 시작')
     currentStatus.value = '서버 승인 요청 중...'
     
-    // 결제 정보를 localStorage에서 가져오기 (index.vue에서 저장된 정보)
+    // 결제 정보를 localStorage에서 가져오기 (payment.vue에서 저장된 정보)
     const paymentDataFromStorage = JSON.parse(localStorage.getItem('paymentData') || '{}')
     const orderInfo = paymentDataFromStorage.orderInfo || {}
     const customerInfo = paymentDataFromStorage.customerInfo || {}
@@ -110,10 +110,17 @@ const processTossPayment = async () => {
     
     // Spring Boot API 서버로 승인 요청 (주문정보 + 인증응답값)
     const requestData = {
-      // 토스페이먼츠 인증 응답값
-      paymentKey: paymentData.value.paymentKey,
-      orderId: paymentData.value.orderId,
-      amount: parseInt(paymentData.value.amount),
+      // 이니시스 인증 응답값 (tid 또는 P_TID 사용)
+      tid: paymentData.value.tid || paymentData.value.P_TID,
+      payMethod: paymentData.value.payMethod || paymentData.value.P_TYPE || 'Card',
+      mid: paymentData.value.mid || paymentData.value.P_MID || 'INIpayTest',
+      authToken: paymentData.value.authToken || paymentData.value.P_AUTH_DT,
+      authUrl: paymentData.value.authUrl || paymentData.value.P_AUTH_NO,
+      netCancel: paymentData.value.netCancel || paymentData.value.P_RMESG1,
+      price: parseInt(paymentData.value.price || paymentData.value.P_AMT || 0),
+      timestamp: paymentData.value.timestamp || paymentData.value.P_REQ_URL,
+      signature: paymentData.value.signature || paymentData.value.P_HASH,
+      verification: paymentData.value.verification,
       
       // 주문 정보
       customerName: customerInfo.name || '테스트 고객',
@@ -127,10 +134,10 @@ const processTossPayment = async () => {
       usePoints: usePoints
     }
     
-    console.log('=== Spring Boot API 요청 데이터 ===')
+    console.log('=== 이니시스 Spring Boot API 요청 데이터 ===')
     console.log(JSON.stringify(requestData, null, 2))
     
-    const response = await fetch('http://localhost:8080/api/payment/confirm', {
+    const response = await fetch('http://localhost:8080/api/payment/inicis/confirm', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -140,12 +147,12 @@ const processTossPayment = async () => {
     
     const result = await response.json()
     
-    console.log('=== Spring Boot API 서버 응답 ===')
+    console.log('=== 이니시스 Spring Boot API 서버 응답 ===')
     console.log('Status:', response.status)
     console.log('Response:', result)
     
     if (response.ok && result.status === 'SUCCESS') {
-      console.log('Spring Boot API 결제 승인 완료!')
+      console.log('이니시스 Spring Boot API 결제 승인 완료!')
       console.log('승인 결과:', result)
       currentStatus.value = '결제 완료'
       
@@ -174,15 +181,14 @@ const processTossPayment = async () => {
     }
     
   } catch (error) {
-    console.error('Spring Boot API 호출 오류:', error)
+    console.error('이니시스 Spring Boot API 호출 오류:', error)
     currentStatus.value = '승인 실패'
     window.location.href = `/payment/fail?message=${encodeURIComponent(error.message)}`
   }
 }
 
-
 useHead({
-  title: '결제 처리 중'
+  title: '이니시스 결제 처리 중'
 })
 </script>
 
@@ -215,7 +221,7 @@ useHead({
   width: 64px;
   height: 64px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border-top: 4px solid #ff6b35;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -258,7 +264,7 @@ useHead({
 }
 
 .status-value {
-  color: #3498db;
+  color: #ff6b35;
   font-weight: bold;
 }
 
