@@ -108,21 +108,38 @@ const processTossPayment = async () => {
     console.log('저장된 주문 정보:', orderInfo)
     console.log('저장된 고객 정보:', customerInfo)
     
-    // Spring Boot API 서버로 승인 요청 (주문정보 + 인증응답값)
+    // 새로운 복합결제 API 구조로 승인 요청
+    const totalAmount = paymentDataFromStorage.totalAmount || parseInt(paymentData.value.amount)
+    const paymentItems = paymentDataFromStorage.paymentItems || []
+    
+    // paymentItems가 없으면 기존 방식으로 구성 (하위호환)
+    if (paymentItems.length === 0) {
+      if (usePoints > 0) {
+        paymentItems.push({
+          paymentMethod: 'POINTS',
+          amount: usePoints
+        })
+      }
+      
+      const cardAmount = parseInt(paymentData.value.amount)
+      if (cardAmount > 0) {
+        paymentItems.push({
+          paymentMethod: 'CARD',
+          amount: cardAmount
+        })
+      }
+    }
+    
     const requestData = {
-      // 토스페이먼츠 인증 응답값
-      // paymentKey: paymentData.value.paymentKey,
-      // orderId: paymentData.value.orderId,
-      // amount: parseInt(paymentData.value.amount),
-      // 주문 정보
+      orderId: paymentData.value.orderId,
+      totalAmount: totalAmount,
+      paymentItems: paymentItems,
       customerName: customerInfo.name || '테스트 고객',
       customerEmail: customerInfo.email || 'test@example.com',
       customerPhone: customerInfo.phone || '010-1234-5678',
       productName: orderInfo.productName || '테스트 상품',
       quantity: orderInfo.quantity || 1,
-      // 회원 정보 및 적립금 사용
       memberId: memberId,
-      usePoints: usePoints,
       authResultMap: paymentData.value
     }
     

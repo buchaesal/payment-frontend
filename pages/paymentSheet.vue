@@ -51,6 +51,30 @@
           </div>
         </div>
         
+        <!-- 결제 방법 요약 섹션 -->
+        <div class="payment-method-summary">
+          <h4>결제 예정 내역</h4>
+          <div class="payment-methods-list">
+            <div v-if="usePoints && usePoints > 0" class="payment-method-item points">
+              <div class="method-info">
+                <span class="method-name">적립금 결제</span>
+                <span class="method-icon">💰</span>
+              </div>
+              <div class="method-amount">{{ formatPrice(usePoints) }}원</div>
+            </div>
+            <div v-if="finalAmount > 0" class="payment-method-item card">
+              <div class="method-info">
+                <span class="method-name">카드 결제</span>
+                <span class="method-icon">💳</span>
+              </div>
+              <div class="method-amount">{{ formatPrice(finalAmount) }}원</div>
+            </div>
+            <div v-if="(!usePoints || usePoints === 0) && finalAmount === 0" class="no-payment">
+              결제할 금액이 없습니다.
+            </div>
+          </div>
+        </div>
+        
         <div class="order-item total">
           <span>카드 결제 금액</span>
           <span class="final-amount">{{ formatPrice(finalAmount) }}원</span>
@@ -96,7 +120,7 @@
           :disabled="!isFormValid || finalAmount < 0"
           type="button"
         >
-          {{ finalAmount === 0 ? '무료 결제 완료' : `${formatPrice(finalAmount)}원 카드결제` }}
+          {{ getPaymentButtonText }}
         </button>
       </div>
     </div>
@@ -157,6 +181,33 @@ const finalAmount = computed(() => {
   return Math.max(0, total - points)
 })
 
+const getPaymentButtonText = computed(() => {
+  const totalAmount = orderInfo.value.amount
+  const pointsUsed = usePoints.value || 0
+  const cardAmount = finalAmount.value
+  
+  if (totalAmount === 0) {
+    return '무료 주문 완료'
+  }
+  
+  // 적립금만 사용하는 경우
+  if (pointsUsed > 0 && cardAmount === 0) {
+    return `${formatPrice(pointsUsed)}원 적립금 결제`
+  }
+  
+  // 카드만 사용하는 경우
+  if (pointsUsed === 0 && cardAmount > 0) {
+    return `${formatPrice(cardAmount)}원 카드 결제`
+  }
+  
+  // 복합결제인 경우
+  if (pointsUsed > 0 && cardAmount > 0) {
+    return `복합결제 (적립금 ${formatPrice(pointsUsed)}원 + 카드 ${formatPrice(cardAmount)}원)`
+  }
+  
+  return '결제하기'
+})
+
 // 메서드
 const formatPrice = (price) => {
   return price.toLocaleString('ko-KR')
@@ -205,8 +256,7 @@ const loadTossPayments = async () => {
 
 // PG사 랜덤 선택 (50:50)
 const selectRandomPG = () => {
-  // return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
-  return 'TOSS'
+  return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
 }
 
 const handlePayment = async () => {
@@ -215,21 +265,50 @@ const handlePayment = async () => {
     return
   }
 
+  // 복합결제 구조: paymentItems 배열 구성
+  const paymentItems = []
+  const totalAmount = orderInfo.value.amount * orderInfo.value.quantity
+
+  // 적립금 사용이 있는 경우
+  if (usePoints.value && usePoints.value > 0) {
+    paymentItems.push({
+      paymentMethod: 'POINTS',
+      amount: usePoints.value
+    })
+  }
+
+  // 카드 결제 금액 (총 금액 - 적립금 사용금액)
+  const cardAmount = finalAmount.value
+  if (cardAmount > 0) {
+    paymentItems.push({
+      paymentMethod: 'CARD', 
+      amount: cardAmount
+    })
+  }
+
+  // 결제할 항목이 없는 경우
+  if (paymentItems.length === 0) {
+    alert('결제할 금액이 없습니다.')
+    return
+  }
+
+  console.log('복합결제 항목:', paymentItems)
+  console.log('총 결제 금액:', totalAmount)
+
   // 적립금만으로 결제가 완료되는 경우
-  if (finalAmount.value === 0) {
+  if (finalAmount.value === 0 && paymentItems.length === 1 && paymentItems[0].paymentMethod === 'POINTS') {
     try {
-      // 백엔드에 적립금만 사용한 결제 요청
+      // 새로운 복합결제 API 구조로 적립금 결제 요청
       const requestData = {
-        paymentKey: `POINTS_${Date.now()}`, // 적립금 결제용 가상 paymentKey
         orderId: `ORDER_${Date.now()}`,
-        amount: 0, // 카드 결제 금액은 0
+        totalAmount: totalAmount,
+        paymentItems: paymentItems,
         customerName: customerInfo.value.name,
         customerEmail: customerInfo.value.email,
         customerPhone: customerInfo.value.phone,
         productName: orderInfo.value.productName,
         quantity: orderInfo.value.quantity,
-        memberId: currentMember.value?.memberId,
-        usePoints: usePoints.value
+        memberId: currentMember.value?.memberId
       }
 
       const response = await fetch(`${API_BASE_URL}/payment/confirm`, {
@@ -246,8 +325,8 @@ const handlePayment = async () => {
         alert('적립금으로 결제가 완료되었습니다!')
         // 회원 정보 업데이트
         await updateMemberInfo()
-        // 성공 페이지로 이동하거나 메인으로 이동
-        navigateTo('/')
+        // 결제 완료 페이지로 이동
+        navigateTo('/payment/success')
       } else {
         alert('결제 처리 중 오류가 발생했습니다: ' + result.message)
       }
@@ -258,17 +337,19 @@ const handlePayment = async () => {
     return
   }
 
-  // 카드 결제가 필요한 경우 - PG사 랜덤 선택
+  // 카드 결제가 포함된 경우 - PG사 랜덤 선택
   const selectedPG = selectRandomPG()
   console.log(`선택된 PG: ${selectedPG}`)
   
-  // 결제 정보를 localStorage에 저장
+  // 복합결제 정보를 localStorage에 저장
   const paymentData = {
     orderInfo: orderInfo.value,
     customerInfo: customerInfo.value,
     memberId: currentMember.value?.memberId,
     usePoints: usePoints.value || 0,
     finalAmount: finalAmount.value,
+    totalAmount: totalAmount,
+    paymentItems: paymentItems,
     selectedPG: selectedPG
   }
   
@@ -703,5 +784,76 @@ useHead({
 .final-amount {
   color: #0064ff;
   font-weight: bold;
+}
+
+/* 결제 방법 요약 섹션 스타일 */
+.payment-method-summary {
+  background-color: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.payment-method-summary h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.payment-methods-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payment-method-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.payment-method-item.points {
+  background-color: #fff3cd;
+  border-color: #ffc107;
+}
+
+.payment-method-item.card {
+  background-color: #cce5ff;
+  border-color: #0064ff;
+}
+
+.method-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.method-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.method-icon {
+  font-size: 20px;
+}
+
+.method-amount {
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+}
+
+.no-payment {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 20px;
 }
 </style>

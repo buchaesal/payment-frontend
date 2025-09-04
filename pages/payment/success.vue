@@ -60,8 +60,20 @@ onMounted(() => {
   console.log('=== 결제 성공 페이지 로드 ===')
   console.log('전체 route.query:', route.query)
   
+  // localStorage에서 결제 정보 가져오기 (적립금 결제용)
+  const paymentDataFromStorage = localStorage.getItem('paymentData')
+  let storageData = null
+  if (paymentDataFromStorage) {
+    try {
+      storageData = JSON.parse(paymentDataFromStorage)
+      console.log('localStorage의 결제 데이터:', storageData)
+    } catch (e) {
+      console.error('localStorage 파싱 오류:', e)
+    }
+  }
+  
   // URL 쿼리 파라미터에서 결제 정보 추출
-  paymentData.value = {
+  const urlData = {
     // 이니시스 응답 파라미터
     oid: route.query.oid,
     price: route.query.price,
@@ -79,13 +91,33 @@ onMounted(() => {
     ...route.query
   }
   
-  console.log('추출된 결제 데이터:', paymentData.value)
+  // 적립금 결제인 경우 localStorage 데이터 활용, 그 외엔 URL 데이터 활용
+  if (storageData && (!urlData.paymentKey && !urlData.tid)) {
+    // 적립금 전액 결제 케이스
+    paymentData.value = {
+      orderId: `ORDER_${Date.now()}`,
+      price: storageData.totalAmount || (storageData.orderInfo?.amount * storageData.orderInfo?.quantity),
+      amount: storageData.totalAmount || (storageData.orderInfo?.amount * storageData.orderInfo?.quantity),
+      goodname: storageData.orderInfo?.productName || '샘플 상품',
+      paymentMethod: 'POINTS',
+      ...urlData
+    }
+    console.log('적립금 결제 - localStorage 데이터 사용')
+  } else {
+    // 카드 결제 또는 복합결제 케이스
+    paymentData.value = urlData
+    console.log('카드 결제 - URL 파라미터 데이터 사용')
+  }
+  
+  console.log('최종 결제 데이터:', paymentData.value)
   
   // 결제 방식 판별
   if (route.query.paymentKey) {
     console.log('토스페이먼츠 결제 응답')
   } else if (route.query.tid) {
     console.log('이니시스 결제 응답')
+  } else if (paymentData.value.paymentMethod === 'POINTS') {
+    console.log('적립금 결제')
   } else {
     console.log('알 수 없는 결제 방식')
   }
