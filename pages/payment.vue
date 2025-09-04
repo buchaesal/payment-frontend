@@ -103,26 +103,25 @@
 
     <!-- 이니시스 결제를 위한 숨겨진 폼 -->
     <form id="inicis_form" name="inicis_form" method="post" style="display: none;">
+      <input type="hidden" name="version" id="version" value="1.0" />
+      <input type="hidden" name="gopaymethod" id="gopaymethod" />
       <input type="hidden" name="mid" id="mid" />
       <input type="hidden" name="oid" id="oid" />
       <input type="hidden" name="price" id="price" />
+      <input type="hidden" name="timestamp" id="timestamp" />
+      <input type="hidden" name="use_chkfake" id="use_chkfake" value="Y" />
+      <input type="hidden" name="signature" id="signature" />
+      <input type="hidden" name="verification" id="verification" />
+      <input type="hidden" name="mKey" id="mKey" />
       <input type="hidden" name="currency" id="currency" />
       <input type="hidden" name="goodname" id="goodname" />
       <input type="hidden" name="buyername" id="buyername" />
       <input type="hidden" name="buyertel" id="buyertel" />
       <input type="hidden" name="buyeremail" id="buyeremail" />
-      <input type="hidden" name="acceptmethod" id="acceptmethod" />
-      <input type="hidden" name="paymethod" id="paymethod" />
-      <input type="hidden" name="encrypted" id="encrypted" />
-      <input type="hidden" name="sessionkey" id="sessionkey" />
-      <input type="hidden" name="gopaymethod" id="gopaymethod" />
-      <input type="hidden" name="offerPeriod" id="offerPeriod" />
-      <input type="hidden" name="timestamp" id="timestamp" />
-      <input type="hidden" name="signature" id="signature" />
-      <input type="hidden" name="verification" id="verification" />
       <input type="hidden" name="returnUrl" id="returnUrl" />
       <input type="hidden" name="closeUrl" id="closeUrl" />
-      <input type="hidden" name="mKey" id="mKey" />
+      <input type="hidden" name="acceptmethod" id="acceptmethod" />
+      <input type="hidden" name="paymethod" id="paymethod" />
     </form>
   </div>
 </template>
@@ -362,32 +361,30 @@ const handleInicisPayment = async () => {
       mKey: paymentInfo.mkey,
       signature: paymentInfo.signature,
       timestamp: paymentInfo.timestamp,
+      verification: paymentInfo.verification,
     }
     
     console.log('최종 이니시스 결제 파라미터:', inicisParams)
     
     // HTML 폼에 파라미터 설정 - 각 필드를 직접 매핑
+    document.getElementById('gopaymethod').value = inicisParams.gopaymethod
+    document.getElementById('mid').value = inicisParams.mid
     document.getElementById('oid').value = inicisParams.oid
     document.getElementById('price').value = inicisParams.price
+    document.getElementById('timestamp').value = inicisParams.timestamp
+    document.getElementById('signature').value = inicisParams.signature
+    document.getElementById('verification').value = inicisParams.verification
+    document.getElementById('mKey').value = inicisParams.mKey
     document.getElementById('currency').value = inicisParams.currency
     document.getElementById('goodname').value = inicisParams.goodname
     document.getElementById('buyername').value = inicisParams.buyername
     document.getElementById('buyertel').value = inicisParams.buyertel
     document.getElementById('buyeremail').value = inicisParams.buyeremail
-    document.getElementById('acceptmethod').value = inicisParams.acceptmethod
-    document.getElementById('paymethod').value = inicisParams.paymethod
-    document.getElementById('encrypted').value = inicisParams.encrypted
-    document.getElementById('sessionkey').value = inicisParams.sessionkey
-    document.getElementById('gopaymethod').value = inicisParams.gopaymethod
-    document.getElementById('offerPeriod').value = inicisParams.offerPeriod
-    document.getElementById('verification').value = inicisParams.verification
     document.getElementById('returnUrl').value = inicisParams.returnUrl
     document.getElementById('closeUrl').value = inicisParams.closeUrl
-    document.getElementById('mid').value = inicisParams.mid
-    document.getElementById('mKey').value = inicisParams.mKey
-    document.getElementById('signature').value = inicisParams.signature
-    document.getElementById('timestamp').value = inicisParams.timestamp
-    
+    document.getElementById('acceptmethod').value = inicisParams.acceptmethod
+    document.getElementById('paymethod').value = inicisParams.paymethod
+
     console.log('HTML 폼 필드 설정 완료')
     console.log('mid:', document.getElementById('mid').value)
     console.log('mKey:', document.getElementById('mKey').value)
