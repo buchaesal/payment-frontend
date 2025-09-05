@@ -7,7 +7,17 @@
       <h1>결제가 완료되었습니다!</h1>
       <p class="message">주문해 주셔서 감사합니다.</p>
       
-      <div class="payment-info" v-if="paymentData">
+      <!-- 로딩 중 표시 -->
+      <div v-if="loading" class="loading-info">
+        <p>결제정보를 불러오는 중...</p>
+      </div>
+      
+      <!-- 에러 발생 시 표시 -->
+      <div v-else-if="error && !paymentData" class="error-info">
+        <p>{{ error }}</p>
+      </div>
+      
+      <div class="payment-info" v-else-if="paymentData">
         <h3>결제 정보</h3>
         <div class="info-item">
           <span>주문번호</span>
@@ -55,10 +65,77 @@ const route = useRoute()
 const router = useRouter()
 
 const paymentData = ref(null)
+const loading = ref(false)
+const error = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
   console.log('=== 결제 성공 페이지 로드 ===')
   console.log('전체 route.query:', route.query)
+  
+  // 쿼리스트링에서 orderId 확인
+  const orderIdFromQuery = route.query.orderId
+  
+  if (orderIdFromQuery) {
+    console.log('쿼리스트링에서 주문번호 발견:', orderIdFromQuery)
+    // 주문번호로 결제정보 조회
+    await fetchPaymentByOrderId(orderIdFromQuery)
+  } else {
+    console.log('쿼리스트링에 주문번호가 없음 - 기존 방식 사용')
+    // 기존 방식: localStorage 및 URL 파라미터 사용
+    handleLegacyPaymentData()
+  }
+})
+
+// 주문번호로 결제정보 조회
+const fetchPaymentByOrderId = async (orderId) => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    console.log('주문번호로 결제정보 조회 시작:', orderId)
+    
+    // 백엔드 API 호출 - 주문번호로 결제정보 조회
+    const response = await $fetch(`http://localhost:8080/api/payment/order/${orderId}`)
+    
+    console.log('결제정보 조회 응답:', response)
+    
+    if (response.status === 'SUCCESS' && response.payment) {
+      // 백엔드에서 받은 결제정보를 화면 표시용으로 변환
+      paymentData.value = {
+        orderId: response.payment.orderId,
+        oid: response.payment.orderId,
+        amount: response.payment.paymentAmount,
+        price: response.payment.paymentAmount,
+        goodname: response.payment.productName || '상품명',
+        paymentMethod: response.payment.paymentMethod,
+        paymentKey: response.payment.paymentKey,
+        tid: response.payment.tid,
+        customerName: response.payment.customerName,
+        customerEmail: response.payment.customerEmail,
+        customerPhone: response.payment.customerPhone,
+        paymentAt: response.payment.paymentAt,
+        paymentStatus: response.payment.paymentStatus
+      }
+      console.log('결제정보 조회 성공:', paymentData.value)
+    } else {
+      error.value = response.message || '결제정보를 찾을 수 없습니다.'
+      console.error('결제정보 조회 실패:', error.value)
+      // 결제정보를 찾을 수 없는 경우 기존 방식으로 폴백
+      handleLegacyPaymentData()
+    }
+  } catch (e) {
+    console.error('결제정보 조회 중 오류:', e)
+    error.value = '결제정보를 불러오는 중 오류가 발생했습니다.'
+    // 오류 발생 시 기존 방식으로 폴백
+    handleLegacyPaymentData()
+  } finally {
+    loading.value = false
+  }
+}
+
+// 기존 방식: localStorage 및 URL 파라미터 사용
+const handleLegacyPaymentData = () => {
+  console.log('기존 방식으로 결제 데이터 처리')
   
   // localStorage에서 결제 정보 가져오기 (적립금 결제용)
   const paymentDataFromStorage = localStorage.getItem('paymentData')
@@ -94,19 +171,40 @@ onMounted(() => {
   // 적립금 결제인 경우 localStorage 데이터 활용, 그 외엔 URL 데이터 활용
   if (storageData && (!urlData.paymentKey && !urlData.tid)) {
     // 적립금 전액 결제 케이스
+    const calculatedAmount = storageData.totalAmount || (storageData.orderInfo?.amount * storageData.orderInfo?.quantity) || 0
     paymentData.value = {
-      orderId: `ORDER_${Date.now()}`,
-      price: storageData.totalAmount || (storageData.orderInfo?.amount * storageData.orderInfo?.quantity),
-      amount: storageData.totalAmount || (storageData.orderInfo?.amount * storageData.orderInfo?.quantity),
-      goodname: storageData.orderInfo?.productName || '샘플 상품',
+      orderId: storageData.orderId || `ORDER_${Date.now()}`,
+      oid: storageData.orderId || `ORDER_${Date.now()}`,
+      price: calculatedAmount,
+      amount: calculatedAmount,
+      goodname: storageData.orderInfo?.productName || storageData.productName || '샘플 상품',
       paymentMethod: 'POINTS',
+      resultCode: '0000',
+      resultMsg: '결제 완료',
       ...urlData
     }
     console.log('적립금 결제 - localStorage 데이터 사용')
-  } else {
-    // 카드 결제 또는 복합결제 케이스
-    paymentData.value = urlData
+  } else if (urlData && (urlData.paymentKey || urlData.tid || Object.keys(urlData).some(key => urlData[key]))) {
+    // 카드 결제 또는 복합결제 케이스 - URL에 실제 데이터가 있는 경우만
+    paymentData.value = {
+      ...urlData,
+      // 누락된 필드들 기본값 설정
+      price: urlData.price || urlData.amount,
+      amount: urlData.amount || urlData.price,
+      goodname: urlData.goodname || '상품명',
+    }
     console.log('카드 결제 - URL 파라미터 데이터 사용')
+  } else {
+    // 데이터가 없는 경우 기본값 설정
+    paymentData.value = {
+      orderId: 'N/A',
+      oid: 'N/A',
+      price: 0,
+      amount: 0,
+      goodname: '상품명을 찾을 수 없습니다',
+      paymentMethod: 'UNKNOWN'
+    }
+    console.log('결제 데이터를 찾을 수 없음 - 기본값 사용')
   }
   
   console.log('최종 결제 데이터:', paymentData.value)
@@ -121,7 +219,7 @@ onMounted(() => {
   } else {
     console.log('알 수 없는 결제 방식')
   }
-})
+}
 
 const formatPrice = (price) => {
   if (!price) return '0'
@@ -180,6 +278,25 @@ useHead({
   color: #666;
   margin-bottom: 30px;
   font-size: 16px;
+}
+
+.loading-info, .error-info {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.loading-info {
+  background-color: #e7f3ff;
+  color: #0056b3;
+  border: 1px solid #b3d9ff;
+}
+
+.error-info {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c2c7;
 }
 
 .payment-info {

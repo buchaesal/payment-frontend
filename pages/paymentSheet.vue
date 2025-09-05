@@ -299,8 +299,9 @@ const handlePayment = async () => {
   if (finalAmount.value === 0 && paymentItems.length === 1 && paymentItems[0].paymentMethod === 'POINTS') {
     try {
       // 새로운 복합결제 API 구조로 적립금 결제 요청
+      const orderId = `ORDER_${Date.now()}`
       const requestData = {
-        orderId: `ORDER_${Date.now()}`,
+        orderId: orderId,
         totalAmount: totalAmount,
         paymentItems: paymentItems,
         customerName: customerInfo.value.name,
@@ -325,8 +326,8 @@ const handlePayment = async () => {
         alert('적립금으로 결제가 완료되었습니다!')
         // 회원 정보 업데이트
         await updateMemberInfo()
-        // 결제 완료 페이지로 이동
-        navigateTo('/payment/success')
+        // 결제 완료 페이지로 주문번호와 함께 이동
+        navigateTo(`/payment/success?orderId=${orderId}`)
       } else {
         alert('결제 처리 중 오류가 발생했습니다: ' + result.message)
       }

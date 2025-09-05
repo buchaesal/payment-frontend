@@ -1,8 +1,14 @@
 <template>
   <div class="history-container">
     <div class="header">
-      <h1>결제내역</h1>
-      <p class="member-info">회원ID: {{ memberId }}</p>
+      <div class="header-top">
+        <h1>결제내역</h1>
+        <button @click="goHome" class="btn btn-secondary">홈으로</button>
+      </div>
+      <div v-if="currentMember" class="member-info">
+        <p><strong>{{ currentMember.name }}</strong>님의 결제내역</p>
+        <p class="member-id">회원ID: {{ memberId }}</p>
+      </div>
     </div>
     
     <div v-if="loading" class="loading">
@@ -67,13 +73,34 @@
 </template>
 
 <script setup>
-const memberId = ref('user123') // 실제로는 로그인된 사용자 정보에서 가져와야 함
+const memberId = ref(null)
+const currentMember = ref(null)
 const paymentList = ref([])
 const loading = ref(false)
 const error = ref(null)
 
 onMounted(() => {
-  loadPaymentHistory()
+  // 로그인 상태 확인 및 회원 정보 로드
+  const savedMember = localStorage.getItem('currentMember')
+  if (!savedMember) {
+    error.value = '로그인이 필요합니다. 로그인 후 다시 시도해주세요.'
+    return
+  }
+
+  try {
+    currentMember.value = JSON.parse(savedMember)
+    memberId.value = currentMember.value.memberId
+    
+    if (!memberId.value) {
+      error.value = '회원 ID를 찾을 수 없습니다.'
+      return
+    }
+    
+    loadPaymentHistory()
+  } catch (e) {
+    console.error('회원 정보 파싱 오류:', e)
+    error.value = '회원 정보를 불러오는 중 오류가 발생했습니다.'
+  }
 })
 
 const loadPaymentHistory = async () => {
@@ -143,6 +170,10 @@ const getStatusText = (status) => {
   return statusMap[status] || status
 }
 
+const goHome = () => {
+  navigateTo('/')
+}
+
 useHead({
   title: '결제내역'
 })
@@ -162,15 +193,40 @@ useHead({
   margin-bottom: 30px;
 }
 
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 .header h1 {
   color: #333;
-  margin-bottom: 10px;
+  margin: 0;
   font-size: 28px;
 }
 
 .member-info {
   color: #666;
   font-size: 14px;
+}
+
+.member-info p {
+  margin: 5px 0;
+}
+
+.member-id {
+  font-size: 12px;
+  color: #999;
+}
+
+.btn-secondary {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #7f8c8d;
 }
 
 .loading, .error, .no-data {
