@@ -141,13 +141,19 @@ const processInicisPayment = async () => {
       body: JSON.stringify(requestData)
     })
     
-    const result = await response.json()
-    
     console.log('=== 이니시스 Spring Boot API 서버 응답 ===')
     console.log('Status:', response.status)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('API 호출 실패:', errorText)
+      throw new Error('결제 승인 실패: ' + errorText)
+    }
+    
+    const result = await response.json()
     console.log('Response:', result)
     
-    if (response.ok && result.status === 'SUCCESS') {
+    if (result.status === 'SUCCESS') {
       console.log('이니시스 Spring Boot API 결제 승인 완료!')
       console.log('승인 결과:', result)
       currentStatus.value = '결제 완료'

@@ -320,9 +320,15 @@ const handlePayment = async () => {
         body: JSON.stringify(requestData)
       })
 
+      if (!response.ok) {
+        const errorText = await response.text()
+        alert('결제 처리 실패: ' + errorText)
+        return
+      }
+
       const result = await response.json()
 
-      if (response.ok && result.status === 'SUCCESS') {
+      if (result.status === 'SUCCESS') {
         alert('적립금으로 결제가 완료되었습니다!')
         // 회원 정보 업데이트
         await updateMemberInfo()
@@ -518,6 +524,12 @@ const updateMemberInfo = async () => {
   if (currentMember.value) {
     try {
       const response = await fetch(`${API_BASE_URL}/member/${currentMember.value.memberId}`)
+      
+      if (!response.ok) {
+        console.error('회원 정보 조회 실패:', response.statusText)
+        return
+      }
+      
       const result = await response.json()
       
       if (result.status === 'SUCCESS') {

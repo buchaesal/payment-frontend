@@ -69,20 +69,23 @@ const loading = ref(false)
 const error = ref(null)
 
 onMounted(async () => {
-  console.log('=== 결제 성공 페이지 로드 ===')
-  console.log('전체 route.query:', route.query)
-  
-  // 쿼리스트링에서 orderId 확인
-  const orderIdFromQuery = route.query.orderId
-  
-  if (orderIdFromQuery) {
-    console.log('쿼리스트링에서 주문번호 발견:', orderIdFromQuery)
-    // 주문번호로 결제정보 조회
-    await fetchPaymentByOrderId(orderIdFromQuery)
-  } else {
-    console.log('쿼리스트링에 주문번호가 없음 - 기존 방식 사용')
-    // 기존 방식: localStorage 및 URL 파라미터 사용
-    handleLegacyPaymentData()
+  // 클라이언트 사이드에서만 실행
+  if (process.client) {
+    console.log('=== 결제 성공 페이지 로드 (클라이언트) ===')
+    console.log('전체 route.query:', route.query)
+    
+    // 쿼리스트링에서 orderId 확인
+    const orderIdFromQuery = route.query.orderId
+    
+    if (orderIdFromQuery) {
+      console.log('쿼리스트링에서 주문번호 발견:', orderIdFromQuery)
+      // 주문번호로 결제정보 조회
+      await fetchPaymentByOrderId(orderIdFromQuery)
+    } else {
+      console.log('쿼리스트링에 주문번호가 없음 - 기존 방식 사용')
+      // 기존 방식: localStorage 및 URL 파라미터 사용
+      handleLegacyPaymentData()
+    }
   }
 })
 
@@ -99,22 +102,17 @@ const fetchPaymentByOrderId = async (orderId) => {
     
     console.log('결제정보 조회 응답:', response)
     
-    if (response.status === 'SUCCESS' && response.payment) {
+    if (response.status === 'SUCCESS') {
       // 백엔드에서 받은 결제정보를 화면 표시용으로 변환
       paymentData.value = {
-        orderId: response.payment.orderId,
-        oid: response.payment.orderId,
-        amount: response.payment.paymentAmount,
-        price: response.payment.paymentAmount,
-        goodname: response.payment.productName || '상품명',
-        paymentMethod: response.payment.paymentMethod,
-        paymentKey: response.payment.paymentKey,
-        tid: response.payment.tid,
-        customerName: response.payment.customerName,
-        customerEmail: response.payment.customerEmail,
-        customerPhone: response.payment.customerPhone,
-        paymentAt: response.payment.paymentAt,
-        paymentStatus: response.payment.paymentStatus
+        orderId: response.orderId,
+        oid: response.orderId,
+        amount: response.totalAmount,
+        price: response.totalAmount,
+        goodname: response.productName || '상품명',
+        paymentMethod: 'CARD', // 결제수단 목록에서 첫 번째 것을 사용하거나 기본값
+        paymentCount: response.paymentCount,
+        paymentList: response.paymentList
       }
       console.log('결제정보 조회 성공:', paymentData.value)
     } else {

@@ -104,6 +104,12 @@ const login = async () => {
       })
     })
 
+    if (!response.ok) {
+      const errorText = await response.text()
+      alert('로그인 실패: ' + errorText)
+      return
+    }
+
     const result = await response.json()
     
     if (result.status === 'SUCCESS') {
@@ -137,6 +143,12 @@ const signup = async () => {
       },
       body: JSON.stringify(signupData.value)
     })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      alert('회원가입 실패: ' + errorText)
+      return
+    }
 
     const result = await response.json()
     
