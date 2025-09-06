@@ -17,19 +17,68 @@
         </div>
       </div>
       
+      <!-- 상품 정보 입력 섹션 -->
+      <div class="product-input">
+        <h3>상품 정보</h3>
+        <div class="form-group">
+          <label>상품명 <span class="required">*</span></label>
+          <input 
+            v-model="orderInfo.productName" 
+            type="text" 
+            placeholder="상품명을 입력하세요"
+            maxlength="100"
+          >
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>상품 금액 <span class="required">*</span></label>
+            <div class="input-with-unit">
+              <input 
+                v-model.number="orderInfo.amount" 
+                type="number" 
+                min="100" 
+                max="10000000"
+                placeholder="100"
+                @input="validateProductAmount"
+              >
+              <span>원</span>
+            </div>
+            <div v-if="amountError" class="error-message">{{ amountError }}</div>
+          </div>
+          <div class="form-group">
+            <label>수량 <span class="required">*</span></label>
+            <div class="quantity-control">
+              <button @click="decreaseQuantity" :disabled="orderInfo.quantity <= 1">-</button>
+              <input 
+                v-model.number="orderInfo.quantity" 
+                type="number" 
+                min="1" 
+                max="99"
+                @input="validateQuantity"
+              >
+              <button @click="increaseQuantity" :disabled="orderInfo.quantity >= 99">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="order-summary">
         <h3>주문 정보</h3>
         <div class="order-item">
           <span>상품명</span>
-          <span>{{ orderInfo.productName }}</span>
+          <span>{{ orderInfo.productName || '상품명을 입력하세요' }}</span>
         </div>
         <div class="order-item">
           <span>수량</span>
           <span>{{ orderInfo.quantity }}개</span>
         </div>
         <div class="order-item">
-          <span>상품 금액</span>
-          <span>{{ formatPrice(orderInfo.amount) }}원</span>
+          <span>단가</span>
+          <span>{{ formatPrice(orderInfo.amount || 0) }}원</span>
+        </div>
+        <div class="order-item">
+          <span>총 상품 금액</span>
+          <span>{{ formatPrice(totalProductAmount) }}원</span>
         </div>
         
         <!-- 적립금 사용 섹션 -->
@@ -100,8 +149,8 @@
       <!-- 결제 요약 -->
       <div class="payment-summary">
         <div class="summary-row">
-          <span>상품 금액</span>
-          <span>{{ formatPrice(orderInfo.amount) }}원</span>
+          <span>총 상품 금액</span>
+          <span>{{ formatPrice(totalProductAmount) }}원</span>
         </div>
         <div class="summary-row discount">
           <span>적립금 할인</span>
@@ -113,11 +162,49 @@
         </div>
       </div>
 
+      <!-- 약관 동의 -->
+      <div class="terms-section">
+        <div class="terms-item">
+          <label class="checkbox-label">
+            <input 
+              v-model="agreements.purchase" 
+              type="checkbox" 
+              class="agreement-checkbox"
+            >
+            <span class="checkmark"></span>
+            <span class="terms-text">구매 조건 및 결제 진행 동의 <span class="required">*</span></span>
+          </label>
+        </div>
+        <div class="terms-item">
+          <label class="checkbox-label">
+            <input 
+              v-model="agreements.privacy" 
+              type="checkbox" 
+              class="agreement-checkbox"
+            >
+            <span class="checkmark"></span>
+            <span class="terms-text">개인정보 처리방침 동의 <span class="required">*</span></span>
+          </label>
+        </div>
+        <div class="terms-item">
+          <label class="checkbox-label">
+            <input 
+              v-model="agreements.all" 
+              type="checkbox" 
+              class="agreement-checkbox"
+              @change="toggleAllAgreements"
+            >
+            <span class="checkmark"></span>
+            <span class="terms-text all-agree">전체 동의</span>
+          </label>
+        </div>
+      </div>
+
       <div class="button-container">
         <button 
           class="payment-button"
           @click="handlePayment"
-          :disabled="!isFormValid || finalAmount < 0"
+          :disabled="!isFormValid"
           type="button"
         >
           {{ getPaymentButtonText }}
@@ -150,16 +237,18 @@
 </template>
 
 <script setup>
-const API_BASE_URL = 'http://localhost:8080/api'
+const config = useRuntimeConfig()
+const API_BASE_URL = config.public.apiBaseUrl
 
 // 상태 관리
 const currentMember = ref(null)
 const usePoints = ref(0)
+const amountError = ref('')
 
 const orderInfo = ref({
-  productName: '샘플 상품',
+  productName: '아이폰 15 Pro',
   quantity: 1,
-  amount: 10000
+  amount: 1590000
 })
 
 const customerInfo = ref({
@@ -168,17 +257,33 @@ const customerInfo = ref({
   phone: ''
 })
 
+// 약관 동의
+const agreements = ref({
+  purchase: false,
+  privacy: false,
+  all: false
+})
+
 // 계산된 속성
-const isFormValid = computed(() => {
-  return customerInfo.value.name && 
-         customerInfo.value.email && 
-         customerInfo.value.phone
+const totalProductAmount = computed(() => {
+  return (orderInfo.value.amount || 0) * (orderInfo.value.quantity || 1)
 })
 
 const finalAmount = computed(() => {
-  const total = orderInfo.value.amount
+  const total = totalProductAmount.value
   const points = usePoints.value || 0
   return Math.max(0, total - points)
+})
+
+const isFormValid = computed(() => {
+  return customerInfo.value.name && 
+         customerInfo.value.email && 
+         customerInfo.value.phone &&
+         orderInfo.value.productName &&
+         orderInfo.value.amount >= 100 &&
+         orderInfo.value.quantity >= 1 &&
+         agreements.value.purchase &&
+         agreements.value.privacy
 })
 
 const getPaymentButtonText = computed(() => {
@@ -213,9 +318,44 @@ const formatPrice = (price) => {
   return price.toLocaleString('ko-KR')
 }
 
+// 상품 금액 유효성 검사
+const validateProductAmount = () => {
+  if (orderInfo.value.amount < 100) {
+    amountError.value = '상품 금액은 100원 이상이어야 합니다'
+    orderInfo.value.amount = 100
+  } else if (orderInfo.value.amount > 10000000) {
+    amountError.value = '상품 금액은 1,000만원을 초과할 수 없습니다'
+    orderInfo.value.amount = 10000000
+  } else {
+    amountError.value = ''
+  }
+}
+
+// 수량 유효성 검사
+const validateQuantity = () => {
+  if (orderInfo.value.quantity < 1) {
+    orderInfo.value.quantity = 1
+  } else if (orderInfo.value.quantity > 99) {
+    orderInfo.value.quantity = 99
+  }
+}
+
+// 수량 증가/감소
+const increaseQuantity = () => {
+  if (orderInfo.value.quantity < 99) {
+    orderInfo.value.quantity += 1
+  }
+}
+
+const decreaseQuantity = () => {
+  if (orderInfo.value.quantity > 1) {
+    orderInfo.value.quantity -= 1
+  }
+}
+
 const validatePoints = () => {
   if (currentMember.value) {
-    const maxPoints = Math.min(currentMember.value.points, orderInfo.value.amount)
+    const maxPoints = Math.min(currentMember.value.points, totalProductAmount.value)
     if (usePoints.value > maxPoints) {
       usePoints.value = maxPoints
     }
@@ -227,10 +367,28 @@ const validatePoints = () => {
 
 const useMaxPoints = () => {
   if (currentMember.value) {
-    const maxUsable = Math.min(currentMember.value.points, orderInfo.value.amount)
+    const maxUsable = Math.min(currentMember.value.points, totalProductAmount.value)
     usePoints.value = maxUsable
   }
 }
+
+// 약관 동의 처리
+const toggleAllAgreements = () => {
+  if (agreements.value.all) {
+    // 전체 동의 체크 시 모든 필수 약관 동의
+    agreements.value.purchase = true
+    agreements.value.privacy = true
+  } else {
+    // 전체 동의 해제 시 모든 약관 해제
+    agreements.value.purchase = false
+    agreements.value.privacy = false
+  }
+}
+
+// 개별 약관 상태 변경 시 전체 동의 상태 업데이트
+watch([() => agreements.value.purchase, () => agreements.value.privacy], () => {
+  agreements.value.all = agreements.value.purchase && agreements.value.privacy
+})
 
 const logout = () => {
   localStorage.removeItem('currentMember')
@@ -257,6 +415,7 @@ const loadTossPayments = async () => {
 // PG사 랜덤 선택 (50:50)
 const selectRandomPG = () => {
   return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
+  // return 'TOSS'
 }
 
 const handlePayment = async () => {
@@ -376,8 +535,8 @@ const handleTossPayment = async () => {
     
     const TossPayments = await loadTossPayments()
     
-    // 토스페이먼츠 테스트 클라이언트 키
-    const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
+    // 토스페이먼츠 클라이언트 키 (환경별로 관리)
+    const clientKey = config.public.tossClientKey
     const tossPayments = TossPayments(clientKey)
     
     const orderId = `ORDER_${Date.now()}`
@@ -440,8 +599,8 @@ const handleInicisPayment = async () => {
       gopaymethod: "Card",
       // 결제 완료 후 이동할 페이지
       returnUrl: `${window.location.origin}/api/payment`,
-      // 결제 창이 닫힐 때 이동할 페이지
-      closeUrl: `${window.location.origin}/payment/fail?message=`,
+      // 결제 창이 닫힐 때 이동할 페이지 (현재 페이지로 돌아감)
+      closeUrl: `${window.location.origin}/paymentSheet`,
       // 서버에서 받아온 데이터 (HTML 폼 필드명과 정확히 일치시킴)
       mid: paymentInfo.mid,
       mKey: paymentInfo.mkey,
@@ -868,5 +1027,171 @@ useHead({
   color: #6c757d;
   font-style: italic;
   padding: 20px;
+}
+
+/* 상품 정보 입력 섹션 */
+.product-input {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.product-input h3 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 18px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.required {
+  color: #e74c3c;
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.input-with-unit input {
+  padding-right: 40px;
+}
+
+.input-with-unit span {
+  position: absolute;
+  right: 12px;
+  color: #666;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-control button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.quantity-control button:hover:not(:disabled) {
+  background-color: #e9ecef;
+}
+
+.quantity-control button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quantity-control input {
+  width: 80px;
+  text-align: center;
+}
+
+/* 약관 동의 섹션 */
+.terms-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.terms-item {
+  margin-bottom: 15px;
+}
+
+.terms-item:last-child {
+  margin-bottom: 0;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  padding-left: 30px;
+  user-select: none;
+}
+
+.agreement-checkbox {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkmark {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 20px;
+  background-color: white;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.agreement-checkbox:checked ~ .checkmark {
+  background-color: #0064ff;
+  border-color: #0064ff;
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.agreement-checkbox:checked ~ .checkmark:after {
+  display: block;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.terms-text {
+  margin-left: 10px;
+  font-size: 14px;
+  color: #333;
+}
+
+.terms-text.all-agree {
+  font-weight: bold;
+  color: #0064ff;
 }
 </style>

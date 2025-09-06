@@ -44,7 +44,7 @@ onMounted(() => {
 })
 
 const goBack = () => {
-  router.push('/payment')
+  router.push('/paymentSheet')
 }
 
 const goHome = () => {

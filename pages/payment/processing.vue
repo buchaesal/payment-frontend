@@ -74,7 +74,7 @@ onMounted(async () => {
     console.log('쿼리 파라미터가 없음 - 직접 접근으로 추정')
     currentStatus.value = '잘못된 접근'
     setTimeout(() => {
-      window.location.href = '/payment'
+      window.location.href = '/paymentSheet'
     }, 2000)
     return
   }
