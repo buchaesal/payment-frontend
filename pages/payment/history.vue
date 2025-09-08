@@ -26,53 +26,76 @@
     
     <div v-else class="payment-list">
       <div 
-        v-for="payment in paymentList" 
-        :key="payment.id"
-        class="payment-item"
-        :class="{ 'cancelled': payment.isCancelled }"
+        v-for="orderGroup in groupedPaymentList" 
+        :key="orderGroup.orderId"
+        class="order-group"
       >
-        <div class="payment-header">
+        <!-- 주문 헤더 -->
+        <div class="order-header">
           <div class="order-info">
-            <span class="order-id">주문번호: {{ payment.orderId }}</span>
-            <span class="payment-date">
-              {{ formatDate(payment.paymentAt) }}
-              <span v-if="payment.isCancelled && payment.cancelledAt" class="cancel-date">
-                (취소: {{ formatDate(payment.cancelledAt) }})
-              </span>
-            </span>
+            <span class="order-id">주문번호: {{ orderGroup.orderId }}</span>
+            <span class="order-date">{{ formatDate(orderGroup.orderDate) }}</span>
           </div>
-          <div class="payment-status">
-            <span class="status" :class="payment.isCancelled ? 'cancel' : (payment.payType ? payment.payType.toLowerCase() : 'approve')">
-              {{ payment.isCancelled ? '결제취소' : getPayTypeText(payment.payType) }}
-            </span>
+          <div class="order-summary">
+            <span class="total-amount">총 {{ formatPrice(orderGroup.totalAmount) }}원</span>
+            <span class="payment-count">{{ orderGroup.payments.length }}개 결제수단</span>
           </div>
         </div>
         
-        <div class="payment-details">
-          <div class="detail-item">
-            <span class="label">결제수단</span>
-            <span class="value">{{ getPaymentMethodText(payment.paymentMethod) }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">결제금액</span>
-            <span class="value amount">{{ formatPrice(payment.paymentAmount) }}원</span>
-          </div>
-        </div>
-        
-        <div class="payment-actions">
-          <button 
-            v-if="!payment.isCancelled && (payment.payType === 'APPROVE' || !payment.payType)"
-            @click="cancelPayment(payment)"
-            class="btn btn-cancel"
+        <!-- 결제수단별 상세내역 -->
+        <div class="payment-methods">
+          <div 
+            v-for="payment in orderGroup.payments" 
+            :key="payment.id"
+            class="payment-method"
+            :class="{ 'cancelled': payment.isCancelled }"
           >
-            결제취소
-          </button>
+            <div class="method-header">
+              <div class="method-info">
+                <span class="method-name">{{ getPaymentMethodText(payment.paymentMethod) }}</span>
+                <span class="method-status" :class="payment.isCancelled ? 'cancel' : 'approve'">
+                  {{ payment.isCancelled ? '취소완료' : '결제완료' }}
+                </span>
+              </div>
+              <div class="method-amount">
+                <span class="amount">{{ formatPrice(payment.paymentAmount) }}원</span>
+              </div>
+            </div>
+            
+            <div class="method-details">
+              <div v-if="payment.pgProvider" class="method-detail">
+                <span class="detail-label">PG사:</span>
+                <span class="detail-value">{{ payment.pgProvider }}</span>
+              </div>
+              <div v-if="payment.tid" class="method-detail">
+                <span class="detail-label">거래ID:</span>
+                <span class="detail-value">{{ payment.tid }}</span>
+              </div>
+              <div v-if="payment.isCancelled && payment.cancelledAt" class="method-detail cancel-info">
+                <span class="detail-label">취소일:</span>
+                <span class="detail-value">{{ formatDate(payment.cancelledAt) }}</span>
+              </div>
+            </div>
+            
+            <div class="method-actions">
+              <button 
+                v-if="!payment.isCancelled && (payment.payType === 'APPROVE' || !payment.payType)"
+                @click="cancelPayment(payment)"
+                class="btn btn-cancel-small"
+              >
+                이 결제수단 취소
+              </button>
+              <span v-else-if="payment.isCancelled" class="cancelled-label">
+                취소됨
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     
     <div class="summary" v-if="paymentList.length > 0">
-      <p>총 {{ paymentList.length }}건의 결제내역</p>
+      <p>총 {{ groupedPaymentList.length }}개 주문, {{ paymentList.length }}건의 결제내역</p>
     </div>
   </div>
 </template>
@@ -83,6 +106,58 @@ const currentMember = ref(null)
 const paymentList = ref([])
 const loading = ref(false)
 const error = ref(null)
+
+// 주문번호별로 그룹화된 결제내역
+const groupedPaymentList = computed(() => {
+  if (!paymentList.value || paymentList.value.length === 0) {
+    return []
+  }
+  
+  // 주문번호별로 그룹화
+  const groupedMap = new Map()
+  
+  paymentList.value.forEach(payment => {
+    const orderId = payment.orderId
+    
+    if (!groupedMap.has(orderId)) {
+      groupedMap.set(orderId, {
+        orderId: orderId,
+        orderDate: payment.paymentAt, // 첫 번째 결제 시간을 주문 시간으로 사용
+        totalAmount: 0,
+        payments: []
+      })
+    }
+    
+    const group = groupedMap.get(orderId)
+    group.payments.push(payment)
+    
+    // 취소되지 않은 결제만 총액에 포함
+    if (!payment.isCancelled) {
+      group.totalAmount += payment.paymentAmount
+    }
+    
+    // 더 이른 시간을 주문 시간으로 업데이트
+    if (new Date(payment.paymentAt) < new Date(group.orderDate)) {
+      group.orderDate = payment.paymentAt
+    }
+  })
+  
+  // Map을 배열로 변환하고 최신 주문 순으로 정렬
+  return Array.from(groupedMap.values())
+    .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+    .map(group => ({
+      ...group,
+      // 각 그룹 내에서 결제수단별로 정렬 (결제완료 -> 취소완료 순)
+      payments: group.payments.sort((a, b) => {
+        // 취소 상태 기준 정렬 (결제완료가 먼저)
+        if (a.isCancelled !== b.isCancelled) {
+          return a.isCancelled ? 1 : -1
+        }
+        // 결제수단 이름순 정렬
+        return a.paymentMethod.localeCompare(b.paymentMethod)
+      })
+    }))
+})
 
 onMounted(() => {
   // 로그인 상태 확인 및 회원 정보 로드
@@ -287,25 +362,189 @@ useHead({
 .payment-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
-.payment-item {
+.order-group {
   background: white;
   border-radius: 12px;
-  padding: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-left: 4px solid #27ae60;
-  transition: transform 0.2s ease;
+  overflow: hidden;
+  border: 1px solid #e9ecef;
 }
 
-.payment-item:hover {
-  transform: translateY(-2px);
+.order-header {
+  background: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.payment-item.cancelled {
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.order-id {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+.order-date {
+  font-size: 14px;
+  color: #666;
+}
+
+.order-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.total-amount {
+  font-weight: 700;
+  font-size: 18px;
+  color: #e74c3c;
+}
+
+.payment-count {
+  font-size: 12px;
+  color: #666;
+  background: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.payment-methods {
+  padding: 0;
+}
+
+.payment-method {
+  padding: 15px 20px;
+  border-bottom: 1px solid #f1f3f4;
+  border-left: 4px solid #28a745;
+  transition: background-color 0.2s ease;
+}
+
+.payment-method:last-child {
+  border-bottom: none;
+}
+
+.payment-method:hover {
+  background-color: #f8f9fa;
+}
+
+.payment-method.cancelled {
   border-left-color: #e74c3c;
-  opacity: 0.8;
+  background-color: #faf6f6;
+}
+
+.method-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.method-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.method-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.method-status {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.method-status.approve {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.method-status.cancel {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.method-amount {
+  display: flex;
+  align-items: center;
+}
+
+.method-amount .amount {
+  font-weight: 700;
+  font-size: 16px;
+  color: #28a745;
+}
+
+.method-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 10px;
+  padding-left: 10px;
+  font-size: 13px;
+  color: #666;
+}
+
+.method-detail {
+  display: flex;
+  gap: 5px;
+}
+
+.method-detail.cancel-info {
+  color: #e74c3c;
+}
+
+.detail-label {
+  font-weight: 500;
+}
+
+.detail-value {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.method-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.btn-cancel-small {
+  background-color: #dc3545;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.btn-cancel-small:hover {
+  background-color: #c82333;
+}
+
+.cancelled-label {
+  font-size: 12px;
+  color: #6c757d;
+  padding: 6px 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
 }
 
 .payment-header {
@@ -450,13 +689,43 @@ useHead({
     padding: 15px;
   }
   
-  .payment-header {
+  .order-header {
     flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
+    padding: 12px 15px;
   }
   
-  .payment-details {
-    padding: 10px;
+  .order-summary {
+    align-items: flex-start;
+  }
+  
+  .payment-method {
+    padding: 12px 15px;
+  }
+  
+  .method-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .method-details {
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 0;
+  }
+  
+  .method-actions {
+    justify-content: flex-start;
+  }
+  
+  .total-amount {
+    font-size: 16px;
+  }
+  
+  .method-amount .amount {
+    font-size: 14px;
   }
 }
 </style>

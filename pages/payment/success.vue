@@ -24,20 +24,74 @@
           <span>{{ paymentData.oid || paymentData.orderId || 'N/A' }}</span>
         </div>
         <div class="info-item">
-          <span>결제금액</span>
-          <span>{{ formatPrice(paymentData.price || paymentData.amount || 0) }}원</span>
+          <span>총 결제금액</span>
+          <span class="total-amount">{{ formatPrice(paymentData.price || paymentData.amount || 0) }}원</span>
         </div>
         <div class="info-item">
           <span>상품명</span>
-          <span>{{ paymentData.goodname || 'N/A' }}</span>
+          <span>{{ paymentData.goodname || paymentData.productName || 'N/A' }}</span>
         </div>
-        <div class="info-item" v-if="paymentData.tid">
-          <span>거래ID (TID)</span>
-          <span>{{ paymentData.tid }}</span>
-        </div>
-        <div class="info-item" v-if="paymentData.paymentKey">
-          <span>결제키</span>
-          <span>{{ paymentData.paymentKey }}</span>
+        
+        <!-- 결제수단 상세 정보 -->
+        <div class="payment-methods">
+          <h4>결제수단 내역</h4>
+          
+          <!-- 복합결제인 경우 -->
+          <div v-if="paymentData.paymentList && paymentData.paymentList.length > 1" class="payment-breakdown">
+            <div v-for="payment in paymentData.paymentList" :key="payment.id" class="payment-method-item">
+              <div class="method-info">
+                <span class="method-name">{{ getPaymentMethodText(payment.paymentMethod) }}</span>
+                <span class="method-amount">{{ formatPrice(payment.paymentAmount) }}원</span>
+              </div>
+              <div v-if="payment.tid" class="method-detail">
+                <span class="detail-label">거래ID:</span>
+                <span class="detail-value">{{ payment.tid }}</span>
+              </div>
+              <div v-if="payment.pgProvider" class="method-detail">
+                <span class="detail-label">PG사:</span>
+                <span class="detail-value">{{ payment.pgProvider }}</span>
+              </div>
+            </div>
+            <div class="payment-summary">
+              <span class="summary-text">{{ getPaymentSummaryText(paymentData.paymentList) }}</span>
+            </div>
+          </div>
+          
+          <!-- 단일결제인 경우 -->
+          <div v-else-if="paymentData.paymentList && paymentData.paymentList.length === 1" class="payment-single">
+            <div class="payment-method-item">
+              <div class="method-info">
+                <span class="method-name">{{ getPaymentMethodText(paymentData.paymentList[0].paymentMethod) }}</span>
+                <span class="method-amount">{{ formatPrice(paymentData.paymentList[0].paymentAmount) }}원</span>
+              </div>
+              <div v-if="paymentData.paymentList[0].tid" class="method-detail">
+                <span class="detail-label">거래ID:</span>
+                <span class="detail-value">{{ paymentData.paymentList[0].tid }}</span>
+              </div>
+              <div v-if="paymentData.paymentList[0].pgProvider" class="method-detail">
+                <span class="detail-label">PG사:</span>
+                <span class="detail-value">{{ paymentData.paymentList[0].pgProvider }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 기존 방식 (레거시) -->
+          <div v-else class="payment-legacy">
+            <div class="payment-method-item">
+              <div class="method-info">
+                <span class="method-name">{{ getPaymentMethodText(paymentData.paymentMethod) }}</span>
+                <span class="method-amount">{{ formatPrice(paymentData.price || paymentData.amount || 0) }}원</span>
+              </div>
+              <div v-if="paymentData.tid" class="method-detail">
+                <span class="detail-label">거래ID:</span>
+                <span class="detail-value">{{ paymentData.tid }}</span>
+              </div>
+              <div v-if="paymentData.paymentKey" class="method-detail">
+                <span class="detail-label">결제키:</span>
+                <span class="detail-value">{{ paymentData.paymentKey }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -224,6 +278,33 @@ const formatPrice = (price) => {
   return parseInt(price).toLocaleString('ko-KR')
 }
 
+// 결제수단 텍스트 변환
+const getPaymentMethodText = (method) => {
+  if (!method) return '알 수 없음'
+  
+  const methodMap = {
+    'CARD': '카드결제',
+    'POINTS': '적립금결제', 
+    'BANK_TRANSFER': '계좌이체',
+    'VIRTUAL_ACCOUNT': '가상계좌'
+  }
+  return methodMap[method] || method
+}
+
+// 복합결제 요약 텍스트 생성
+const getPaymentSummaryText = (paymentList) => {
+  if (!paymentList || paymentList.length <= 1) return ''
+  
+  const methods = paymentList.map(p => getPaymentMethodText(p.paymentMethod))
+  const uniqueMethods = [...new Set(methods)]
+  
+  if (uniqueMethods.length === 1) {
+    return `${uniqueMethods[0]} (${paymentList.length}건)`
+  } else {
+    return uniqueMethods.join(' + ') + ' 복합결제'
+  }
+}
+
 const goHome = () => {
   router.push('/')
 }
@@ -321,6 +402,106 @@ useHead({
 
 .info-item:last-child {
   border-bottom: none;
+}
+
+.total-amount {
+  font-weight: 600;
+  color: #e74c3c;
+  font-size: 18px;
+}
+
+.payment-methods {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #dee2e6;
+}
+
+.payment-methods h4 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.payment-method-item {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 12px;
+}
+
+.method-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.method-name {
+  font-weight: 600;
+  color: #495057;
+  font-size: 15px;
+}
+
+.method-amount {
+  font-weight: 700;
+  color: #28a745;
+  font-size: 16px;
+}
+
+.method-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+
+.method-detail:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 500;
+}
+
+.detail-value {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-summary {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #e7f3ff;
+  border-radius: 6px;
+  border-left: 4px solid #0056b3;
+}
+
+.summary-text {
+  font-weight: 600;
+  color: #0056b3;
+  font-size: 14px;
+}
+
+.payment-breakdown {
+  border-left: 3px solid #ffc107;
+  padding-left: 15px;
+}
+
+.payment-single {
+  border-left: 3px solid #28a745;
+  padding-left: 15px;
+}
+
+.payment-legacy {
+  border-left: 3px solid #6c757d;
+  padding-left: 15px;
 }
 
 .debug-info {
