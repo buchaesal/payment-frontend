@@ -49,7 +49,7 @@ export default defineNuxtConfig({
     jwtSecretKey: 'superKey',
     public: {
       clientConfigValue: 'test',
-      tossClientKey: process.env.TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq',
+      tossClientKey: process.env.TOSS_CLIENT_KEY || 'sk_test_w5lNQylNqa5lNQe013Nq',
       apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8080/api',
     },
   },

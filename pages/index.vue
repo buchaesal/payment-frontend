@@ -64,6 +64,8 @@
 </template>
 
 <script setup>
+import {navigateTo} from "#app";
+
 const API_BASE_URL = 'http://localhost:8080/api'
 
 // 상태 관리
@@ -110,19 +112,15 @@ const login = async () => {
       return
     }
 
-    const result = await response.json()
-    
-    if (result.status === 'SUCCESS') {
-      // 로그인 정보 저장
-      localStorage.setItem('currentMember', JSON.stringify(result.member))
-      
-      alert(`${result.member.name}님, 환영합니다! 결제 페이지로 이동합니다.`)
-      
-      // 결제 페이지로 이동
-      await navigateTo('/paymentSheet')
-    } else {
-      alert(result.message)
-    }
+    // JSON 응답을 파싱
+    const memberData = await response.json()
+
+    // 로그인 정보 저장
+    localStorage.setItem('currentMember', JSON.stringify(memberData))
+    alert(`${memberData.name}님, 환영합니다! 결제 페이지로 이동합니다.`)
+    // 결제 페이지로 이동
+    await navigateTo('/paymentSheet')
+
   } catch (error) {
     console.error('로그인 오류:', error)
     alert('로그인 중 오류가 발생했습니다.')
@@ -174,13 +172,49 @@ const signup = async () => {
   }
 }
 
-// 초기화 - 이미 로그인되어 있으면 결제 페이지로 리다이렉트
+// 회원 존재 여부 확인 함수
+const verifyMemberExists = async (memberId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/member/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        memberId: memberId
+      })
+    })
+
+    if (!response.ok) {
+      return false
+    }
+
+    // 서버가 MemberResponse 객체를 직접 반환하므로 JSON 파싱 후 id 존재 확인
+    const memberData = await response.json()
+    return memberData && memberData.id
+  } catch (error) {
+    console.error('회원 확인 오류:', error)
+    return false
+  }
+}
+
+// 초기화 - 이미 로그인되어 있으면 회원 존재 여부 확인 후 결제 페이지로 리다이렉트
 onMounted(async () => {
   const savedMember = localStorage.getItem('currentMember')
   if (savedMember) {
     const member = JSON.parse(savedMember)
-    alert(`이미 로그인되어 있습니다. ${member.name}님, 결제 페이지로 이동합니다.`)
-    await navigateTo('/paymentSheet')
+    
+    // 실제로 해당 회원이 존재하는지 확인
+    const memberExists = await verifyMemberExists(member.memberId)
+    
+    if (memberExists) {
+      alert(`이미 로그인되어 있습니다. ${member.name}님, 결제 페이지로 이동합니다.`)
+      await navigateTo('/paymentSheet')
+    } else {
+      // 회원이 존재하지 않으면 localStorage 정리
+      localStorage.removeItem('currentMember')
+      alert('로그인 정보가 유효하지 않습니다. 다시 로그인해주세요.')
+    }
   }
 })
 

@@ -61,7 +61,7 @@ onMounted(async () => {
     console.log('쿼리 파라미터가 없음 - 직접 접근으로 추정')
     currentStatus.value = '잘못된 접근'
     setTimeout(() => {
-      // window.location.href = '/paymentSheet'
+      navigateTo('/paymentSheet')
     }, 2000)
     return
   }
@@ -75,7 +75,7 @@ onMounted(async () => {
     console.log('결제 응답 오류 또는 잘못된 접근')
     currentStatus.value = '결제 응답 오류'
     setTimeout(() => {
-      // window.location.href = '/payment/fail?message=잘못된 결제 응답'
+      navigateTo('/payment/fail?message=잘못된 결제 응답')
     }, 2000)
   }
 })
@@ -127,7 +127,8 @@ const processInicisPayment = async () => {
       productName: orderInfo.productName || '테스트 상품',
       quantity: orderInfo.quantity || 1,
       memberId: memberId,
-      authResultMap: paymentData.value
+      authResultMap: paymentData.value,
+      pgProvider: 'INICIS',
     }
     
     console.log('=== 이니시스 Spring Boot API 요청 데이터 ===')
@@ -153,39 +154,29 @@ const processInicisPayment = async () => {
     const result = await response.json()
     console.log('Response:', result)
     
-    if (result.status === 'SUCCESS') {
-      console.log('이니시스 Spring Boot API 결제 승인 완료!')
-      console.log('승인 결과:', result)
-      currentStatus.value = '결제 완료'
-      
-      // 승인 결과를 paymentData에 추가
-      paymentData.value = {
-        ...paymentData.value,
-        approvalResult: result,
-        orderInfo: orderInfo,
-        customerInfo: customerInfo
-      }
-      
-      // 성공 페이지로 이동
-      setTimeout(() => {
-        const successUrl = new URL('/payment/success', window.location.origin)
-        Object.entries(paymentData.value).forEach(([key, value]) => {
-          if (typeof value === 'object') {
-            successUrl.searchParams.set(key, JSON.stringify(value))
-          } else {
-            successUrl.searchParams.set(key, value)
-          }
-        })
-        // window.location.href = successUrl.toString()
-      }, 1000)
-    } else {
-      throw new Error(result.message || '승인 실패')
+    // 새로운 예외 기반 API에서는 성공 시에만 응답이 옴
+    console.log('이니시스 Spring Boot API 결제 승인 완료!')
+    console.log('승인 결과:', result)
+    currentStatus.value = '결제 완료'
+    
+    // 승인 결과를 paymentData에 추가
+    paymentData.value = {
+      ...paymentData.value,
+      approvalResult: result,
+      orderInfo: orderInfo,
+      customerInfo: customerInfo
     }
+    
+    // 성공 페이지로 이동
+    setTimeout(() => {
+      const orderId = requestData.orderId
+      navigateTo(`/payment/success?orderId=${orderId}`)
+    }, 1000)
     
   } catch (error) {
     console.error('이니시스 Spring Boot API 호출 오류:', error)
     currentStatus.value = '승인 실패'
-    // window.location.href = `/payment/fail?message=${encodeURIComponent(error.message)}`
+    navigateTo(`/payment/fail?message=${encodeURIComponent(error.message)}`)
   }
 }
 

@@ -248,7 +248,7 @@ const amountError = ref('')
 const orderInfo = ref({
   productName: '아이폰 15 Pro',
   quantity: 1,
-  amount: 1590000
+  amount: 1000
 })
 
 const customerInfo = ref({
@@ -468,7 +468,7 @@ const handlePayment = async () => {
         customerPhone: customerInfo.value.phone,
         productName: orderInfo.value.productName,
         quantity: orderInfo.value.quantity,
-        memberId: currentMember.value?.memberId
+        memberId: currentMember.value?.memberId,
       }
 
       const response = await fetch(`${API_BASE_URL}/payment/confirm`, {
@@ -553,7 +553,6 @@ const handleTossPayment = async () => {
     })
   } catch (error) {
     console.error('토스페이먼츠 결제 실패:', error)
-    alert('토스페이먼츠 결제 중 오류가 발생했습니다.')
   }
 }
 
@@ -686,19 +685,19 @@ const updateMemberInfo = async () => {
       
       if (!response.ok) {
         console.error('회원 정보 조회 실패:', response.statusText)
-        return
+        return false
       }
       
-      const result = await response.json()
-      
-      if (result.status === 'SUCCESS') {
-        currentMember.value = result.member
-        localStorage.setItem('currentMember', JSON.stringify(result.member))
-      }
+      const member = await response.json()
+      currentMember.value = member
+      localStorage.setItem('currentMember', JSON.stringify(member))
+      return true
     } catch (error) {
       console.error('회원 정보 업데이트 오류:', error)
+      return false
     }
   }
+  return false
 }
 
 // 초기화
@@ -719,7 +718,15 @@ onMounted(async () => {
   customerInfo.value.phone = currentMember.value.phone || ''
 
   // 최신 회원 정보 조회 (적립금 업데이트를 위해)
-  await updateMemberInfo()
+  const memberInfoResult = await updateMemberInfo()
+  
+  // 회원 정보 조회 실패 시 index 페이지로 리다이렉트
+  if (!memberInfoResult) {
+    localStorage.removeItem('currentMember')
+    alert('회원 정보를 불러올 수 없습니다. 메인 페이지로 이동합니다.')
+    await navigateTo('/')
+    return
+  }
 })
 
 useHead({

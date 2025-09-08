@@ -140,7 +140,8 @@ const processTossPayment = async () => {
       productName: orderInfo.productName || '테스트 상품',
       quantity: orderInfo.quantity || 1,
       memberId: memberId,
-      authResultMap: paymentData.value
+      authResultMap: paymentData.value,
+      pgProvider: 'TOSS',
     }
     
     console.log('=== Spring Boot API 요청 데이터 ===')
@@ -154,51 +155,41 @@ const processTossPayment = async () => {
       body: JSON.stringify(requestData)
     })
     
-    console.log('=== Spring Boot API 서버 응답 ===')
-    console.log('Status:', response.status)
-    
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('API 호출 실패:', errorText)
       throw new Error('결제 승인 실패: ' + errorText)
     }
     
     const result = await response.json()
-    console.log('Response:', result)
     
-    if (result.status === 'SUCCESS') {
-      console.log('Spring Boot API 결제 승인 완료!')
-      console.log('승인 결과:', result)
-      currentStatus.value = '결제 완료'
-      
-      // 승인 결과를 paymentData에 추가
-      paymentData.value = {
-        ...paymentData.value,
-        approvalResult: result,
-        orderInfo: orderInfo,
-        customerInfo: customerInfo
-      }
-      
-      // 성공 페이지로 이동
-      setTimeout(() => {
-        const successUrl = new URL('/payment/success', window.location.origin)
-        Object.entries(paymentData.value).forEach(([key, value]) => {
-          if (typeof value === 'object') {
-            successUrl.searchParams.set(key, JSON.stringify(value))
-          } else {
-            successUrl.searchParams.set(key, value)
-          }
-        })
-        // window.location.href = successUrl.toString()
-      }, 1000)
-    } else {
-      throw new Error(result.message || '승인 실패')
+    // 새로운 예외 기반 API에서는 성공 시에만 응답이 옴
+    currentStatus.value = '결제 완료'
+    
+    // 승인 결과를 paymentData에 추가
+    paymentData.value = {
+      ...paymentData.value,
+      approvalResult: result,
+      orderInfo: orderInfo,
+      customerInfo: customerInfo
     }
+    
+    // 성공 페이지로 이동
+    setTimeout(() => {
+      const successUrl = new URL('/payment/success', window.location.origin)
+      Object.entries(paymentData.value).forEach(([key, value]) => {
+        if (typeof value === 'object') {
+          successUrl.searchParams.set(key, JSON.stringify(value))
+        } else {
+          successUrl.searchParams.set(key, value)
+        }
+      })
+      // window.location.href = successUrl.toString()
+    }, 1000)
     
   } catch (error) {
     console.error('Spring Boot API 호출 오류:', error)
     currentStatus.value = '승인 실패'
-    // window.location.href = `/payment/fail?message=${encodeURIComponent(error.message)}`
+    window.location.href = `/payment/fail?message=${encodeURIComponent(error.message)}`
   }
 }
 
