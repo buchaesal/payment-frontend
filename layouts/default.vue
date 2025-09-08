@@ -3,7 +3,7 @@
     <nav class="navigation">
       <div class="nav-container">
         <div class="nav-brand">
-          <NuxtLink to="/" class="brand-link">토스페이먼츠 샘플</NuxtLink>
+          <NuxtLink to="/" class="brand-link">결제하기 샘플</NuxtLink>
         </div>
         <div class="nav-menu">
           <NuxtLink to="/paymentSheet" class="nav-link" active-class="active">

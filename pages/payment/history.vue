@@ -29,16 +29,21 @@
         v-for="payment in paymentList" 
         :key="payment.id"
         class="payment-item"
-        :class="{ 'cancelled': payment.paymentStatus === 'CANCELLED' }"
+        :class="{ 'cancelled': payment.isCancelled }"
       >
         <div class="payment-header">
           <div class="order-info">
             <span class="order-id">주문번호: {{ payment.orderId }}</span>
-            <span class="payment-date">{{ formatDate(payment.paymentAt) }}</span>
+            <span class="payment-date">
+              {{ formatDate(payment.paymentAt) }}
+              <span v-if="payment.isCancelled && payment.cancelledAt" class="cancel-date">
+                (취소: {{ formatDate(payment.cancelledAt) }})
+              </span>
+            </span>
           </div>
           <div class="payment-status">
-            <span class="status" :class="payment.paymentStatus.toLowerCase()">
-              {{ getStatusText(payment.paymentStatus) }}
+            <span class="status" :class="payment.isCancelled ? 'cancel' : (payment.payType ? payment.payType.toLowerCase() : 'approve')">
+              {{ payment.isCancelled ? '결제취소' : getPayTypeText(payment.payType) }}
             </span>
           </div>
         </div>
@@ -56,7 +61,7 @@
         
         <div class="payment-actions">
           <button 
-            v-if="payment.paymentStatus === 'SUCCESS'"
+            v-if="!payment.isCancelled && (payment.payType === 'APPROVE' || !payment.payType)"
             @click="cancelPayment(payment)"
             class="btn btn-cancel"
           >
@@ -115,6 +120,7 @@ const loadPaymentHistory = async () => {
     console.log('결제내역 조회 응답:', response)
     
     if (response.status === 'SUCCESS') {
+      // 백엔드에서 이미 병합 처리된 데이터를 그대로 사용
       paymentList.value = response.paymentList || []
     } else {
       error.value = response.message || '결제내역 조회에 실패했습니다.'
@@ -128,10 +134,34 @@ const loadPaymentHistory = async () => {
   }
 }
 
-const cancelPayment = (payment) => {
-  // 현재는 기능 없음 (사용자 요청에 따라)
-  console.log('결제취소 버튼 클릭:', payment.orderId)
-  alert('결제취소 기능은 준비중입니다.')
+const cancelPayment = async (payment) => {
+  console.log('결제취소 버튼 클릭:', payment)
+  
+  if (!confirm(`정말로 결제를 취소하시겠습니까?\n결제금액: ${formatPrice(payment.paymentAmount)}원`)) {
+    return
+  }
+  
+  try {
+    console.log('결제취소 요청 시작:', payment.id)
+    
+    const response = await $fetch(`http://localhost:8080/api/payment/cancel/${payment.id}`, {
+      method: 'POST'
+    })
+    
+    console.log('결제취소 응답:', response)
+    
+    if (response.status === 'SUCCESS') {
+      alert('결제가 성공적으로 취소되었습니다.')
+      // 결제내역 새로고침
+      await loadPaymentHistory()
+    } else {
+      alert('결제 취소에 실패했습니다: ' + (response.message || '알 수 없는 오류'))
+    }
+    
+  } catch (e) {
+    console.error('결제취소 오류:', e)
+    alert('결제 취소 중 오류가 발생했습니다: ' + (e.data?.message || e.message || '네트워크 오류'))
+  }
 }
 
 const formatDate = (dateString) => {
@@ -159,6 +189,15 @@ const getPaymentMethodText = (method) => {
     'VIRTUAL_ACCOUNT': '가상계좌'
   }
   return methodMap[method] || method
+}
+
+const getPayTypeText = (payType) => {
+  if (!payType) return '결제완료' // 기존 데이터는 승인으로 간주
+  const payTypeMap = {
+    'APPROVE': '결제완료',
+    'CANCEL': '결제취소'
+  }
+  return payTypeMap[payType] || payType
 }
 
 const getStatusText = (status) => {
@@ -293,11 +332,29 @@ useHead({
   color: #666;
 }
 
+.cancel-date {
+  font-size: 12px;
+  color: #e74c3c;
+  font-weight: 500;
+  display: block;
+  margin-top: 2px;
+}
+
 .payment-status .status {
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
+}
+
+.status.approve {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status.cancel {
+  background-color: #d1ecf1;
+  color: #0c5460;
 }
 
 .status.success {

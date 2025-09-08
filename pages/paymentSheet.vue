@@ -414,8 +414,8 @@ const loadTossPayments = async () => {
 
 // PG사 랜덤 선택 (50:50)
 const selectRandomPG = () => {
-  return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
-  // return 'TOSS'
+  // return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
+  return 'INICIS'
 }
 
 const handlePayment = async () => {
