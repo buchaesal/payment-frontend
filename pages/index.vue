@@ -1,7 +1,7 @@
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <h1 class="auth-title">토스 결제 시스템</h1>
+      <h1 class="auth-title">결제 시스템</h1>
       <p class="auth-subtitle">로그인 또는 회원가입을 해주세요</p>
       
       <div class="auth-buttons">
@@ -219,7 +219,7 @@ onMounted(async () => {
 })
 
 useHead({
-  title: '토스 결제 시스템'
+  title: '결제 시스템'
 })
 </script>
 

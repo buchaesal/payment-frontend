@@ -92,6 +92,12 @@
           <button @click="testDebounceTimingAttack" class="test-btn timing-btn" :disabled="isAutoTesting">
             {{ isAutoTesting ? '테스트 진행중...' : 'Debounce 타이밍 어택 테스트' }}
           </button>
+          <button @click="testRealConcurrentCalls" class="test-btn concurrent-btn" :disabled="isAutoTesting">
+            {{ isAutoTesting ? '테스트 진행중...' : '🔥 실제 중복호출 테스트 (위험)' }}
+          </button>
+          <button @click="testDebounceBypass" class="test-btn bypass-btn" :disabled="isAutoTesting">
+            {{ isAutoTesting ? '테스트 진행중...' : '⚡ 디바운스 우회 공격 테스트' }}
+          </button>
           <button @click="testThrottleComparison" class="test-btn compare-btn" :disabled="isAutoTesting">
             {{ isAutoTesting ? '테스트 진행중...' : 'Throttle 안전성 비교 테스트' }}
           </button>
@@ -390,6 +396,124 @@ const testDebounceTimingAttack = async () => {
     isAutoTesting.value = false
     testDescription.value = ''
   }
+}
+
+// 🔥 실제 중복호출 테스트 - 디바운스를 완전히 우회하여 동시에 API 호출
+const testRealConcurrentCalls = async () => {
+  if (!selectedMember.value) {
+    alert('먼저 회원을 선택해주세요!')
+    return
+  }
+  
+  isAutoTesting.value = true
+  testDescription.value = '🔥 실제 중복호출 테스트: 디바운스를 우회하여 동시에 여러 API 호출 중...'
+  clearLogs()
+  
+  try {
+    debounceLogs.value.push('🔥 [위험테스트] 디바운스를 완전히 우회하여 동시 API 호출 시작!')
+    debounceLogs.value.push('🔥 [위험테스트] 이 테스트는 실제 중복호출을 발생시킵니다')
+    
+    // 디바운스를 우회하여 직접 API 함수를 동시에 여러 번 호출
+    const promises = []
+    for (let i = 0; i < 3; i++) {
+      const callTime = new Date().toLocaleTimeString()
+      debounceLogs.value.push(`💥 [${callTime}] ${i + 1}번째 동시 API 호출 시작`)
+      
+      // 플래그 체크도 우회하기 위해 별도의 API 함수 직접 호출
+      promises.push(couponDownloadApiDirect('CONCURRENT_TEST', selectedMember.value.id, i + 1))
+    }
+    
+    // 모든 호출을 동시에 실행
+    const results = await Promise.allSettled(promises)
+    
+    results.forEach((result, index) => {
+      const callTime = new Date().toLocaleTimeString()
+      if (result.status === 'fulfilled') {
+        debounceLogs.value.push(`✅ [${callTime}] ${index + 1}번째 호출 성공: ${result.value.message}`)
+      } else {
+        debounceLogs.value.push(`❌ [${callTime}] ${index + 1}번째 호출 실패: ${result.reason.message}`)
+      }
+    })
+    
+    debounceLogs.value.push('🔥 [위험테스트] 완료! 중복호출이 실제로 발생했는지 확인하세요')
+    
+  } catch (error) {
+    debounceLogs.value.push(`🔥 [위험테스트] 오류: ${error.message}`)
+  } finally {
+    isAutoTesting.value = false
+    testDescription.value = ''
+  }
+}
+
+// ⚡ 디바운스 우회 공격 테스트 - 정확한 타이밍으로 디바운스 약점 공격
+const testDebounceBypass = async () => {
+  if (!selectedMember.value) {
+    alert('먼저 회원을 선택해주세요!')
+    return
+  }
+  
+  isAutoTesting.value = true
+  testDescription.value = '⚡ 디바운스 우회 공격: 정확한 타이밍으로 디바운스의 약점 공격 중...'
+  clearLogs()
+  
+  try {
+    debounceLogs.value.push('⚡ [우회공격] 디바운스 우회 공격 시작!')
+    
+    // 1단계: 첫 번째 디바운스 호출 시작
+    debounceLogs.value.push('⚡ [우회공격] 1단계: 첫 번째 디바운스 호출')
+    downloadCouponWithDebounce()
+    
+    // 2단계: 295ms 후 추가 호출 (디바운스 직전)
+    await new Promise(resolve => setTimeout(resolve, 295))
+    debounceLogs.value.push('⚡ [우회공격] 2단계: 295ms 후 추가 호출 (디바운스 리셋)')
+    downloadCouponWithDebounce()
+    
+    // 3단계: 정확히 300ms 후 직접 API 호출 시도
+    await new Promise(resolve => setTimeout(resolve, 300))
+    debounceLogs.value.push('⚡ [우회공격] 3단계: 300ms 후 직접 API 우회 호출')
+    
+    // 디바운스와 플래그를 모두 우회하여 직접 호출
+    try {
+      const result = await couponDownloadApiDirect('BYPASS_ATTACK', selectedMember.value.id, 'BYPASS')
+      debounceLogs.value.push(`⚡ [우회공격] 우회 호출 성공: ${result.message}`)
+    } catch (error) {
+      debounceLogs.value.push(`⚡ [우회공격] 우회 호출 실패: ${error.message}`)
+    }
+    
+    debounceLogs.value.push('⚡ [우회공격] 완료! 디바운스 우회가 성공했는지 확인하세요')
+    
+  } catch (error) {
+    debounceLogs.value.push(`⚡ [우회공격] 오류: ${error.message}`)
+  } finally {
+    isAutoTesting.value = false
+    testDescription.value = ''
+  }
+}
+
+// 플래그 없이 직접 API 호출하는 함수 (테스트용)
+const couponDownloadApiDirect = async (type, memberId, callId) => {
+  const timestamp = new Date().toLocaleTimeString()
+  console.log(`[${type}] 직접 API 호출 ${callId} 시작 - 회원ID: ${memberId}, 시간: ${timestamp}`)
+  
+  // 서버에서 중복발급 체크 시뮬레이션
+  const member = members.value.find(m => m.id === memberId)
+  if (member && member.couponIssued) {
+    console.log(`[${type}] 서버 측 중복발급 체크 - 이미 발급된 회원`)
+    throw new Error(`회원 ${member.name}은 이미 쿠폰을 발급받았습니다`)
+  }
+  
+  // API 호출 시뮬레이션 (1초 대기)
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  
+  // 성공 시 회원의 쿠폰 발급 상태 업데이트
+  if (member) {
+    member.couponIssued = true
+  }
+  
+  const endTimestamp = new Date().toLocaleTimeString()
+  console.log(`[${type}] 직접 API 호출 ${callId} 완료 - ${endTimestamp}`)
+  
+  return { success: true, message: `쿠폰 발급 성공! (${member?.name}) - 호출${callId}`, timestamp: endTimestamp }
 }
 
 const testThrottleComparison = async () => {
@@ -716,6 +840,36 @@ const testThrottleComparison = async () => {
 
 .compare-btn:hover:not(:disabled) {
   background-color: #e64a19;
+}
+
+.concurrent-btn {
+  background-color: #d32f2f;
+  animation: pulse 2s infinite;
+}
+
+.concurrent-btn:hover:not(:disabled) {
+  background-color: #b71c1c;
+}
+
+.bypass-btn {
+  background-color: #ff6f00;
+  animation: pulse 2s infinite;
+}
+
+.bypass-btn:hover:not(:disabled) {
+  background-color: #e65100;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
 }
 
 .test-btn:disabled {
