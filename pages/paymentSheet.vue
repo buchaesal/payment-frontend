@@ -212,27 +212,6 @@
       </div>
     </div>
 
-    <!-- 이니시스 결제를 위한 숨겨진 폼 -->
-    <form id="inicis_form" name="inicis_form" method="post" :action="`${config.public.inicisUrl}/ini/payform.php`" target="_self">
-      <input type="hidden" name="version" id="version" value="1.0" />
-      <input type="hidden" name="gopaymethod" id="gopaymethod" />
-      <input type="hidden" name="mid" id="mid" />
-      <input type="hidden" name="oid" id="oid" />
-      <input type="hidden" name="price" id="price" />
-      <input type="hidden" name="timestamp" id="timestamp" />
-      <input type="hidden" name="use_chkfake" id="use_chkfake" />
-      <input type="hidden" name="signature" id="signature" />
-      <input type="hidden" name="verification" id="verification" />
-      <input type="hidden" name="mKey" id="mKey" />
-      <input type="hidden" name="currency" id="currency" />
-      <input type="hidden" name="goodname" id="goodname" />
-      <input type="hidden" name="buyername" id="buyername" />
-      <input type="hidden" name="buyertel" id="buyertel" />
-      <input type="hidden" name="buyeremail" id="buyeremail" />
-      <input type="hidden" name="returnUrl" id="returnUrl" />
-      <input type="hidden" name="closeUrl" id="closeUrl" />
-      <input type="hidden" name="acceptmethod" id="acceptmethod" />
-    </form>
   </div>
 </template>
 
@@ -556,127 +535,58 @@ const handleTossPayment = async () => {
   }
 }
 
-// 이니시스 실제 결제 처리
+// 이니시스 실제 결제 처리 (팝업 방식)
 const handleInicisPayment = async () => {
   try {
-    console.log('이니시스 실제 결제 진행')
-    
-    // 이니시스 결제 파라미터 설정
-    const orderId = `ORDER_${Date.now()}`
-    
-    // 서버에서 이니시스 결제 정보 조회
-    console.log('서버에서 이니시스 결제 정보 조회 중...')
-    const payInfoResponse = await fetch(`${API_BASE_URL}/inicis/pc/pay-info?oid=${orderId}&price=${finalAmount.value}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-    
-    const payInfoResult = await payInfoResponse.json()
-    
-    if (!payInfoResponse.ok || payInfoResult.status !== 'SUCCESS') {
-      throw new Error(payInfoResult.message || '결제 정보 조회 실패')
-    }
-    
-    const paymentInfo = payInfoResult.paymentInfo
-    console.log('서버에서 받아온 이니시스 결제 정보:', paymentInfo)
-    
-    // 이니시스 스크립트 로드
-    await loadInicisScript()
-    
-    // 이니시스 결제 파라미터
-    const inicisParams = {
-      oid: orderId,
-      price: finalAmount.value.toString(),
-      currency: "WON",
-      goodname: orderInfo.value.productName,
-      buyername: customerInfo.value.name,
-      buyertel: customerInfo.value.phone,
-      buyeremail: customerInfo.value.email,
-      acceptmethod: "HPP(1):below1000",
-      gopaymethod: "Card",
-      // 결제 완료 후 이동할 페이지
-      returnUrl: `${window.location.origin}/api/payment`,
-      // 결제 창이 닫힐 때 이동할 페이지 (현재 페이지로 돌아감)
-      closeUrl: `${window.location.origin}/paymentSheet`,
-      // 서버에서 받아온 데이터 (HTML 폼 필드명과 정확히 일치시킴)
-      mid: paymentInfo.mid,
-      mKey: paymentInfo.mkey,
-      signature: paymentInfo.signature,
-      timestamp: paymentInfo.timestamp,
-      verification: paymentInfo.verification,
-    }
-    
-    console.log('최종 이니시스 결제 파라미터:', inicisParams)
-    
-    // HTML 폼에 파라미터 설정 - 각 필드를 직접 매핑
-    document.getElementById('gopaymethod').value = inicisParams.gopaymethod
-    document.getElementById('mid').value = inicisParams.mid
-    document.getElementById('oid').value = inicisParams.oid
-    document.getElementById('price').value = inicisParams.price
-    document.getElementById('timestamp').value = inicisParams.timestamp
-    document.getElementById('signature').value = inicisParams.signature
-    document.getElementById('verification').value = inicisParams.verification
-    document.getElementById('mKey').value = inicisParams.mKey
-    document.getElementById('currency').value = inicisParams.currency
-    document.getElementById('goodname').value = inicisParams.goodname
-    document.getElementById('buyername').value = inicisParams.buyername
-    document.getElementById('buyertel').value = inicisParams.buyertel
-    document.getElementById('buyeremail').value = inicisParams.buyeremail
-    document.getElementById('returnUrl').value = inicisParams.returnUrl
-    document.getElementById('closeUrl').value = inicisParams.closeUrl
-    document.getElementById('acceptmethod').value = inicisParams.acceptmethod
+    console.log('이니시스 팝업 결제 진행')
 
-    console.log('HTML 폼 필드 설정 완료')
-    console.log('mid:', document.getElementById('mid').value)
-    console.log('mKey:', document.getElementById('mKey').value)
-    console.log('signature:', document.getElementById('signature').value)
-    console.log('timestamp:', document.getElementById('timestamp').value)
-    
-    // INIStdPay 객체 확인
-    console.log('INIStdPay 객체:', window.INIStdPay)
-    
-    // 이니시스 결제창 호출
-    if (window.INIStdPay && window.INIStdPay.pay) {
-      console.log('INIStdPay.pay() 호출')
-      window.INIStdPay.pay('inicis_form')
-    } else {
-      console.error('INIStdPay.pay 메서드를 찾을 수 없습니다')
-      alert('이니시스 결제 모듈 로드에 실패했습니다')
+    const orderId = `ORDER_${Date.now()}`
+
+    // 팝업에 전달할 결제 정보
+    const paymentParams = new URLSearchParams({
+      orderId: orderId,
+      amount: finalAmount.value.toString(),
+      productName: orderInfo.value.productName,
+      customerName: customerInfo.value.name,
+      customerPhone: customerInfo.value.phone,
+      customerEmail: customerInfo.value.email
+    })
+
+    // 이니시스 결제 팝업 URL
+    const popupUrl = `/payment/inicis/popup?${paymentParams.toString()}`
+
+    console.log('이니시스 팝업 URL:', popupUrl)
+
+    // 팝업 창 옵션
+    const popupFeatures = [
+      'width=600',
+      'height=700',
+      'scrollbars=yes',
+      'resizable=yes',
+      'toolbar=no',
+      'menubar=no',
+      'location=no',
+      'status=no',
+      'top=' + Math.round((screen.height - 700) / 2),
+      'left=' + Math.round((screen.width - 600) / 2)
+    ].join(',')
+
+    // 팝업 창 열기
+    const popupWindow = window.open(popupUrl, 'inicis_payment', popupFeatures)
+
+    if (!popupWindow) {
+      alert('팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도해주세요.')
+      return
     }
-    
+
+    console.log('이니시스 결제 팝업 창 열림')
+
   } catch (error) {
     console.error('이니시스 결제 실패:', error)
     alert('이니시스 결제 중 오류가 발생했습니다: ' + error.message)
   }
 }
 
-// 이니시스 스크립트 로드
-const loadInicisScript = () => {
-  return new Promise((resolve, reject) => {
-    if (window.INIStdPay) {
-      resolve()
-      return
-    }
-    
-    const script = document.createElement('script')
-    script.src = config.public.inicisScriptUrl
-    script.charset = 'UTF-8'
-    
-    script.onload = () => {
-      console.log('이니시스 스크립트 로드 완료')
-      resolve()
-    }
-    
-    script.onerror = () => {
-      console.error('이니시스 스크립트 로드 실패')
-      reject(new Error('이니시스 스크립트 로드 실패'))
-    }
-    
-    document.head.appendChild(script)
-  })
-}
 
 const updateMemberInfo = async () => {
   if (currentMember.value) {
@@ -700,8 +610,23 @@ const updateMemberInfo = async () => {
   return false
 }
 
+function handlePopupMessage(event) {
+  if (event.data?.type === 'inicis') {
+    console.log('팝업에서 받은 데이터:', event.data)
+
+    const result = event.data?.result
+    if (result === 'success') {
+      navigateTo(`/payment/success?orderId=${orderId}`)
+    } else {
+      navigateTo(`/payment/fail`)
+    }
+    // 여기서 결제 결과 처리 (예: API 조회 or 화면 업데이트)
+  }
+}
+
 // 초기화
 onMounted(async () => {
+  window.addEventListener('message', handlePopupMessage)
   // 로그인 상태 확인
   const savedMember = localStorage.getItem('currentMember')
   if (!savedMember) {

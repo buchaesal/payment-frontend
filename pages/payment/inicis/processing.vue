@@ -15,7 +15,7 @@
         </div>
       </div>
 
-      <div class="debug-section" v-if="paymentData">
+      <div v-if="paymentData" class="debug-section">
         <h3>이니시스 인증 응답 데이터</h3>
         <div class="debug-content">
           <pre>{{ JSON.stringify(paymentData, null, 2) }}</pre>
@@ -27,27 +27,10 @@
 
 <script setup>
 const route = useRoute()
-const router = useRouter()
 const config = useRuntimeConfig()
 
 const currentStatus = ref('인증 응답 처리 중...')
 const paymentData = ref(null)
-
-// 페이지 로드 즉시 실행
-// if (process.client) {
-//   console.log('=== 이니시스 클라이언트 사이드 실행 ===')
-//   console.log('현재 URL:', window.location.href)
-//
-//   // URL에서 쿼리 파라미터 직접 파싱
-//   const urlParams = new URLSearchParams(window.location.search)
-//   const queryData = {}
-//   for (const [key, value] of urlParams.entries()) {
-//     queryData[key] = value
-//   }
-//
-//   console.log('URL에서 직접 파싱한 쿼리:', queryData)
-//   console.log('URL에서 직접 파싱한 쿼리 (JSON):', JSON.stringify(queryData, null, 2))
-// }
 
 onMounted(async () => {
   console.log('route.query:', route.query)
@@ -73,11 +56,21 @@ onMounted(async () => {
     currentStatus.value = '이니시스 승인 요청 중...'
     await processInicisPayment()
   } else {
-    console.log('결제 응답 오류 또는 잘못된 접근')
-    currentStatus.value = '결제 응답 오류'
+    console.log('이니시스 인증 실패:', resultBody.resultMsg || '알 수 없는 오류')
+    currentStatus.value = '인증 실패'
+
+    // 부모 창에 결제 실패 알림
+    if (window.opener) {
+      window.opener.postMessage({
+        type: 'inicis',
+        result: 'fail'
+      }, '*')
+    }
+
+    // 잠시 후 팝업 창 닫기
     setTimeout(() => {
-      navigateTo('/payment/fail?message=잘못된 결제 응답')
-    }, 2000)
+      window.close()
+    }, 1000)
   }
 })
 
@@ -85,21 +78,21 @@ const processInicisPayment = async () => {
   try {
     console.log('이니시스 승인 프로세스 시작')
     currentStatus.value = '서버 승인 요청 중...'
-    
+
     // 결제 정보를 localStorage에서 가져오기 (payment.vue에서 저장된 정보)
     const paymentDataFromStorage = JSON.parse(localStorage.getItem('paymentData') || '{}')
     const orderInfo = paymentDataFromStorage.orderInfo || {}
     const customerInfo = paymentDataFromStorage.customerInfo || {}
     const memberId = paymentDataFromStorage.memberId
     const usePoints = paymentDataFromStorage.usePoints || 0
-    
+
     console.log('저장된 주문 정보:', orderInfo)
     console.log('저장된 고객 정보:', customerInfo)
-    
+
     // 새로운 복합결제 API 구조로 승인 요청
     const totalAmount = paymentDataFromStorage.totalAmount || (orderInfo.amount * orderInfo.quantity)
     const paymentItems = paymentDataFromStorage.paymentItems || []
-    
+
     // paymentItems가 없으면 기존 방식으로 구성 (하위호환)
     if (paymentItems.length === 0) {
       if (usePoints > 0) {
@@ -108,7 +101,7 @@ const processInicisPayment = async () => {
           amount: usePoints
         })
       }
-      
+
       const cardAmount = totalAmount - (usePoints || 0)
       if (cardAmount > 0) {
         paymentItems.push({
@@ -117,7 +110,7 @@ const processInicisPayment = async () => {
         })
       }
     }
-    
+
     const requestData = {
       orderId: `ORDER_${Date.now()}`,
       totalAmount: totalAmount,
@@ -131,10 +124,10 @@ const processInicisPayment = async () => {
       authResultMap: paymentData.value,
       pgProvider: 'INICIS',
     }
-    
+
     console.log('=== 이니시스 Spring Boot API 요청 데이터 ===')
     console.log(JSON.stringify(requestData, null, 2))
-    
+
     const response = await fetch(`${config.public.apiBaseUrl}/payment/confirm`, {
       method: 'POST',
       headers: {
@@ -142,24 +135,24 @@ const processInicisPayment = async () => {
       },
       body: JSON.stringify(requestData)
     })
-    
+
     console.log('=== 이니시스 Spring Boot API 서버 응답 ===')
     console.log('Status:', response.status)
-    
+
     if (!response.ok) {
       const errorText = await response.text()
       console.error('API 호출 실패:', errorText)
       throw new Error('결제 승인 실패: ' + errorText)
     }
-    
+
     const result = await response.json()
     console.log('Response:', result)
-    
+
     // 새로운 예외 기반 API에서는 성공 시에만 응답이 옴
     console.log('이니시스 Spring Boot API 결제 승인 완료!')
     console.log('승인 결과:', result)
     currentStatus.value = '결제 완료'
-    
+
     // 승인 결과를 paymentData에 추가
     paymentData.value = {
       ...paymentData.value,
@@ -167,17 +160,36 @@ const processInicisPayment = async () => {
       orderInfo: orderInfo,
       customerInfo: customerInfo
     }
-    
-    // 성공 페이지로 이동
+
+    // 부모 창(바닥 페이지)에 결제 성공 알림
+    if (window.opener) {
+      window.opener.postMessage({
+        type: 'inicis',
+        result: 'success'
+      }, '*')
+    }
+
+    // 잠시 후 팝업 창 닫기
     setTimeout(() => {
-      const orderId = requestData.orderId
-      navigateTo(`/payment/success?orderId=${orderId}`)
+      window.close()
     }, 1000)
-    
+
   } catch (error) {
     console.error('이니시스 Spring Boot API 호출 오류:', error)
     currentStatus.value = '승인 실패'
-    navigateTo(`/payment/fail?message=${encodeURIComponent(error.message)}`)
+
+    // 부모 창에 결제 실패 알림
+    if (window.opener) {
+      window.opener.postMessage({
+        type: 'inicis',
+        result: 'fail'
+      }, '*')
+    }
+
+    // 잠시 후 팝업 창 닫기
+    setTimeout(() => {
+      window.close()
+    }, 1000)
   }
 }
 
