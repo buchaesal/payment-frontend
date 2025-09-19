@@ -1,4 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { getCurrentConfig } from './config'
+
+const envConfig = getCurrentConfig()
+
 export default defineNuxtConfig({
   devtools: { enabled: true },
   typescript: {
@@ -49,8 +53,11 @@ export default defineNuxtConfig({
     jwtSecretKey: 'superKey',
     public: {
       clientConfigValue: 'test',
-      tossClientKey: process.env.TOSS_CLIENT_KEY || 'sk_test_w5lNQylNqa5lNQe013Nq',
-      apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8080/api',
+      environment: process.env.NUXT_ENV || 'local',
+      tossClientKey: process.env.TOSS_CLIENT_KEY || envConfig.tossClientKey,
+      apiBaseUrl: process.env.API_BASE_URL || envConfig.apiBaseUrl,
+      inicisUrl: process.env.INICIS_URL || envConfig.inicisUrl,
+      inicisScriptUrl: process.env.INICIS_SCRIPT_URL || envConfig.inicisScriptUrl,
     },
   },
 });

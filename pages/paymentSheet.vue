@@ -213,7 +213,7 @@
     </div>
 
     <!-- 이니시스 결제를 위한 숨겨진 폼 -->
-    <form id="inicis_form" name="inicis_form" method="post" action="https://stgstdpay.inicis.com/ini/payform.php" target="_self">
+    <form id="inicis_form" name="inicis_form" method="post" :action="`${config.public.inicisUrl}/ini/payform.php`" target="_self">
       <input type="hidden" name="version" id="version" value="1.0" />
       <input type="hidden" name="gopaymethod" id="gopaymethod" />
       <input type="hidden" name="mid" id="mid" />
@@ -399,10 +399,10 @@ const loadTossPayments = async () => {
   if (window.TossPayments) {
     return window.TossPayments
   }
-  
+
   const script = document.createElement('script')
   script.src = 'https://js.tosspayments.com/v1/payment'
-  
+
   return new Promise((resolve, reject) => {
     script.onload = () => {
       resolve(window.TossPayments)
@@ -414,8 +414,8 @@ const loadTossPayments = async () => {
 
 // PG사 랜덤 선택 (50:50)
 const selectRandomPG = () => {
-  // return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
-  return 'INICIS'
+  return Math.random() < 0.5 ? 'TOSS' : 'INICIS'
+  // return 'INICIS'
 }
 
 const handlePayment = async () => {
@@ -534,7 +534,7 @@ const handleTossPayment = async () => {
     console.log('토스페이먼츠 결제 진행')
     
     const TossPayments = await loadTossPayments()
-    
+
     // 토스페이먼츠 클라이언트 키 (환경별로 관리)
     const clientKey = config.public.tossClientKey
     const tossPayments = TossPayments(clientKey)
@@ -661,7 +661,7 @@ const loadInicisScript = () => {
     }
     
     const script = document.createElement('script')
-    script.src = 'https://stgstdpay.inicis.com/stdjs/INIStdPay.js'  // 테스트 환경
+    script.src = config.public.inicisScriptUrl
     script.charset = 'UTF-8'
     
     script.onload = () => {

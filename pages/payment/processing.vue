@@ -28,6 +28,7 @@
 <script setup>
 const route = useRoute()
 const router = useRouter()
+const config = useRuntimeConfig()
 
 const currentStatus = ref('인증 응답 처리 중...')
 const paymentData = ref(null)
@@ -147,7 +148,7 @@ const processTossPayment = async () => {
     console.log('=== Spring Boot API 요청 데이터 ===')
     console.log(JSON.stringify(requestData, null, 2))
     
-    const response = await fetch('http://localhost:8080/api/payment/confirm', {
+    const response = await fetch(`${config.public.apiBaseUrl}/payment/confirm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -163,8 +164,9 @@ const processTossPayment = async () => {
     const result = await response.json()
     
     // 새로운 예외 기반 API에서는 성공 시에만 응답이 옴
+    console.log('결제 승인 성공:', result)
     currentStatus.value = '결제 완료'
-    
+
     // 승인 결과를 paymentData에 추가
     paymentData.value = {
       ...paymentData.value,
@@ -172,18 +174,21 @@ const processTossPayment = async () => {
       orderInfo: orderInfo,
       customerInfo: customerInfo
     }
-    
-    // 성공 페이지로 이동
+
+    // 성공 페이지로 이동 (orderId를 쿼리 파라미터로 전달)
+    console.log('결제완료 페이지로 이동 준비 중...')
+    const orderId = paymentData.value.orderId
+    console.log('주문번호:', orderId)
+
     setTimeout(() => {
-      const successUrl = new URL('/payment/success', window.location.origin)
-      Object.entries(paymentData.value).forEach(([key, value]) => {
-        if (typeof value === 'object') {
-          successUrl.searchParams.set(key, JSON.stringify(value))
-        } else {
-          successUrl.searchParams.set(key, value)
-        }
-      })
-      // window.location.href = successUrl.toString()
+      if (orderId) {
+        console.log(`결제완료 페이지로 이동: /payment/success?orderId=${orderId}`)
+        window.location.href = `/payment/success?orderId=${orderId}`
+      } else {
+        // orderId가 없는 경우 기본 성공 페이지로 이동
+        console.log('주문번호가 없어 기본 성공 페이지로 이동: /payment/success')
+        window.location.href = '/payment/success'
+      }
     }, 1000)
     
   } catch (error) {

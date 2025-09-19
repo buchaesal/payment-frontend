@@ -66,7 +66,8 @@
 <script setup>
 import {navigateTo} from "#app";
 
-const API_BASE_URL = 'http://localhost:8080/api'
+const config = useRuntimeConfig()
+const API_BASE_URL = config.public.apiBaseUrl
 
 // 상태 관리
 const showLoginModal = ref(false)

@@ -117,6 +117,7 @@
 <script setup>
 const route = useRoute()
 const router = useRouter()
+const config = useRuntimeConfig()
 
 const paymentData = ref(null)
 const loading = ref(false)
@@ -152,7 +153,7 @@ const fetchPaymentByOrderId = async (orderId) => {
     console.log('주문번호로 결제정보 조회 시작:', orderId)
     
     // 백엔드 API 호출 - 주문번호로 결제정보 조회
-    const response = await $fetch(`http://localhost:8080/api/payment/order/${orderId}`)
+    const response = await $fetch(`${config.public.apiBaseUrl}/payment/order/${orderId}`)
     
     console.log('결제정보 조회 응답:', response)
     

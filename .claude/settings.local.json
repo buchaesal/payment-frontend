@@ -12,9 +12,13 @@
       "WebFetch(domain:manual.inicis.com)",
       "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\controller/**)",
       "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\model/**)",
-      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\model/**)"
+      "Read(/C:\\Users\\danbi\\IdeaProjects\\toss-payment-api\\src\\main\\java\\com\\example\\payment\\model/**)",
+      "Read(//c/Users/Administrator/IdeaProjects/payment-api/src/main/java/com/example/payment/entity/**)",
+      "Read(//c/Users/Administrator/IdeaProjects/payment-api/**)",
+      "Read(//c/Users/Administrator/IdeaProjects/**)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "korean"
 }

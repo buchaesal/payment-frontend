@@ -28,6 +28,7 @@
 <script setup>
 const route = useRoute()
 const router = useRouter()
+const config = useRuntimeConfig()
 
 const currentStatus = ref('인증 응답 처리 중...')
 const paymentData = ref(null)
@@ -134,7 +135,7 @@ const processInicisPayment = async () => {
     console.log('=== 이니시스 Spring Boot API 요청 데이터 ===')
     console.log(JSON.stringify(requestData, null, 2))
     
-    const response = await fetch('http://localhost:8080/api/payment/confirm', {
+    const response = await fetch(`${config.public.apiBaseUrl}/payment/confirm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

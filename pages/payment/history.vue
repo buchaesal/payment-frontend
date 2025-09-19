@@ -101,6 +101,7 @@
 </template>
 
 <script setup>
+const config = useRuntimeConfig()
 const memberId = ref(null)
 const currentMember = ref(null)
 const paymentList = ref([])
@@ -190,7 +191,7 @@ const loadPaymentHistory = async () => {
   try {
     console.log('결제내역 조회 시작:', memberId.value)
     
-    const response = await $fetch(`http://localhost:8080/api/payment/history/${memberId.value}`)
+    const response = await $fetch(`${config.public.apiBaseUrl}/payment/history/${memberId.value}`)
     
     console.log('결제내역 조회 응답:', response)
     
@@ -219,7 +220,7 @@ const cancelPayment = async (payment) => {
   try {
     console.log('결제취소 요청 시작:', payment.id)
     
-    const response = await $fetch(`http://localhost:8080/api/payment/cancel/${payment.id}`, {
+    const response = await $fetch(`${config.public.apiBaseUrl}/payment/cancel/${payment.id}`, {
       method: 'POST'
     })
     
