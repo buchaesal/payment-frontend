@@ -21,11 +21,6 @@ onMounted(() => {
 
   console.log('이니시스 close 페이지 로드됨')
 
-  // 부모 창에 결제창 닫힘 알림
-  if (window.opener) {
-    window.opener.postMessage({ type: 'INICIS_PAYMENT_CLOSED' }, '*')
-  }
-
   // 1초 후 팝업 창 닫기
   setTimeout(() => {
     window.close()

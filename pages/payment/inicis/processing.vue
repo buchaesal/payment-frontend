@@ -165,7 +165,8 @@ const processInicisPayment = async () => {
     if (window.opener) {
       window.opener.postMessage({
         type: 'inicis',
-        result: 'success'
+        result: 'success',
+        orderId: requestData.orderId
       }, '*')
     }
 

@@ -535,6 +535,8 @@ const handleTossPayment = async () => {
   }
 }
 
+let popupWindow = null
+
 // 이니시스 실제 결제 처리 (팝업 방식)
 const handleInicisPayment = async () => {
   try {
@@ -559,8 +561,8 @@ const handleInicisPayment = async () => {
 
     // 팝업 창 옵션
     const popupFeatures = [
-      'width=600',
-      'height=700',
+      'width=820',
+      'height=600',
       'scrollbars=yes',
       'resizable=yes',
       'toolbar=no',
@@ -572,7 +574,7 @@ const handleInicisPayment = async () => {
     ].join(',')
 
     // 팝업 창 열기
-    const popupWindow = window.open(popupUrl, 'inicis_payment', popupFeatures)
+    popupWindow = window.open(popupUrl, 'inicis_payment', popupFeatures)
 
     if (!popupWindow) {
       alert('팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도해주세요.')
@@ -616,6 +618,7 @@ function handlePopupMessage(event) {
 
     const result = event.data?.result
     if (result === 'success') {
+      const orderId = event.data.orderId
       navigateTo(`/payment/success?orderId=${orderId}`)
     } else {
       navigateTo(`/payment/fail`)

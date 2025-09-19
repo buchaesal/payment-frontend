@@ -54,10 +54,12 @@ const {
   productName,
   customerName,
   customerPhone,
-  customerEmail
+  customerEmail,
+  closeYn,
 } = route.query
 
 onMounted(async () => {
+  if (closeYn === 'Y') window.close()
   // 클라이언트에서만 실행
   if (!process.client) return
 
@@ -150,10 +152,6 @@ onMounted(async () => {
   } catch (error) {
     console.error('이니시스 팝업 초기화 실패:', error)
     alert('결제 초기화 중 오류가 발생했습니다: ' + error.message)
-    // 부모 창에 오류 메시지 전달하고 팝업 닫기
-    if (window.opener) {
-      window.opener.postMessage({ type: 'INICIS_ERROR', error: error.message }, '*')
-    }
     window.close()
   }
 })
@@ -183,15 +181,6 @@ const loadInicisScript = () => {
     document.head.appendChild(script)
   })
 }
-
-// 페이지 언로드 시 부모 창에 알림 (클라이언트에서만 실행)
-onMounted(() => {
-  if (process.client) {
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage('test', '*') // '*' 대신 origin 지정 가능
-    }
-  }
-})
 
 useHead({
   title: '이니시스 결제'
